@@ -17,5 +17,8 @@ module.exports = {
   },
   rules: {
     'react/react-in-jsx-scope': 'off',
+    indent: 'off',
+    'react/jsx-indent-props': 'off',
+    'max-len': 'off',
   },
 };
