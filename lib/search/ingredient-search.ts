@@ -51,16 +51,29 @@ export async function loadIngredientFile(namesOnly: boolean) {
 
   if (namesOnly) {
     const ingredients: any[] = [];
-    json.ingredients_collection.forEach((ingredient): { ingredient: any } => {
-      ingredients.push({
-        value: ingredient.ingredient,
-        label: ingredient.ingredient,
-      });
+    json.ingredients_collection.forEach((ingredient: { ingredient: any }) => {
+      if (!ingredients.find((x) => x.value === ingredient.ingredient)) {
+        ingredients.push({
+          value: ingredient.ingredient,
+          label: ingredient.ingredient,
+        });
+      }
     });
     return ingredients.sort((a, b) => (a.label > b.label ? 1 : b.label > a.label ? -1 : 0));
   }
 
-  return json.ingredients_collection;
+  const ingredients: any[] = [];
+  json.ingredients_collection.forEach((ingredient: { ingredient: any }) => {
+    if (!ingredients.find((x) => x.ingredient === ingredient.ingredient)) {
+      ingredients.push({
+        ...ingredients,
+        label: ingredient.ingredient,
+        value: ingredient.ingredient,
+      });
+    }
+  });
+
+  return ingredients;
 }
 
 export async function getAvoidances(userId) {

@@ -57,7 +57,7 @@ function AuthenticationForm(props: PaperProps<'div'>) {
         setError(null);
         try {
             await auth.signInWithEmailAndPassword(data.email, data.password);
-            // router.push("/");
+            router.push('/');
         } catch (e: any) {
             setError(e.message);
         }

@@ -17,6 +17,7 @@ export interface Recipe {
   servingsAdjusted?: number;
   search_terms: string[];
   ingredients: IngredientFormatted[];
+  ingredients_formatted: IngredientFormatted[];
   ingredientGroups: RecipeGroup[];
   method: MethodItem[];
   description?: string;
@@ -28,8 +29,13 @@ export interface Recipe {
     id: string;
     type: string;
   };
+  creator?: {
+    id: string;
+    image: string;
+    name: string;
+  };
   categories?: Object;
-  sourceType?: "My own creation" | "From a cookbook" | "From a website";
+  sourceType?: 'My own creation' | 'From a cookbook' | 'From a website';
   nutrients: Object;
 }
 
@@ -40,6 +46,7 @@ export interface IngredientFormatted {
   unit: string;
   data?: any; // TODO
   group?: string;
+  recipe?: Recipe;
 }
 
 export interface IngredientGroup {
@@ -123,8 +130,8 @@ export interface Notification {
   seen: boolean;
   type: string;
   id?: string;
-  toEntityType?: "user" | "page" | "venue";
-  fromEntityType?: "user" | "page" | "venue";
+  toEntityType?: 'user' | 'page' | 'venue';
+  fromEntityType?: 'user' | 'page' | 'venue';
   toEntityId: string;
   fromEntityId: string;
 }
@@ -141,7 +148,7 @@ export interface Entity {
   image: string;
   href: string;
   id: string;
-  type: "user" | "page" | "venue";
+  type: 'user' | 'page' | 'venue';
 }
 
 export interface Post {
@@ -154,15 +161,9 @@ export interface Post {
   recipeId?: string;
   collectionCount?: number;
   collectionId?: string;
-  type?:
-    | "created"
-    | "reviewed"
-    | "cooked"
-    | "saved"
-    | "post"
-    | "collection_count";
-  sourceType: "user" | "page" | "venue";
-  sourceId: "string";
+  type?: 'created' | 'reviewed' | 'cooked' | 'saved' | 'post' | 'collection_count';
+  sourceType: 'user' | 'page' | 'venue';
+  sourceId: 'string';
   post?: {
     address: string;
     addressPlaceId: string;
@@ -242,4 +243,45 @@ export interface Timer {
   hours: number;
   minutes: number;
   seconds: number;
+}
+
+export interface ListIngredient {
+  checked?: boolean;
+  id: string;
+  combinedAmounts?: CombinedAmount[];
+  combinedAmount: CombinedAmount[];
+  dataFetched?: IngredientFormatted & { shopping_list_category?: string };
+  ingredient: string;
+  hasCategory?: boolean;
+  unit?: string;
+  quantity?: number;
+  data?: any;
+  recipe?: Recipe;
+}
+
+export interface AddToListIngredient {
+  ingredient: string;
+  example_servings: string[];
+}
+
+export interface ListCategory {
+  dbName?: string;
+  name: string;
+  combinedIngredients?: ListIngredient[];
+  ingredients?: ListIngredient[];
+  title?: string;
+}
+
+export interface CombinedAmount {
+  ids: string[];
+  checked?: boolean;
+  unit?: string;
+  quantity?: number;
+}
+
+export interface IngredientOccurance {
+  recipeTitle: string;
+  recipeId: string;
+  unit: string;
+  quantity: number;
 }

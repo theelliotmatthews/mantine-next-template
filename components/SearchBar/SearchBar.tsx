@@ -1,9 +1,10 @@
-import { useEffect, useState, useContext } from 'react';
-import { searchRecipes } from '../../lib/search/recipe-search';
-import { TextInput, TextInputProps, ActionIcon, useMantineTheme, Group, Center, Container, Autocomplete, MultiSelect, ThemeIcon } from '@mantine/core';
+import { useEffect, useState } from 'react';
+import { TextInput, ActionIcon, useMantineTheme, Group, Container, MultiSelect } from '@mantine/core';
 import { Search, ArrowRight, ArrowLeft } from 'tabler-icons-react';
-import { loadIngredientFile, searchIngredients } from '../../lib/search/ingredient-search';
+import { searchRecipes } from '../../lib/search/recipe-search';
+import { loadIngredientFile } from '../../lib/search/ingredient-search';
 import { Recipe } from '../../lib/types';
+import RecipesContainer from '../RecipesContainer/RecipesContainer';
 
 // Lists
 
@@ -20,7 +21,7 @@ interface SearchBarProps {
     buttonText?: string
 }
 
-export function SearchBar(props: SearchBarProps) {
+export default function SearchBar(props: SearchBarProps) {
     const { placeholder, hideAdvancedByDefault, recipeCreatorId, creatorType, userRecipeType, slideover, chooseRecipe, collectionId, buttonText } = props;
 
     const [results, setResults] = useState<Recipe[]>([]);
@@ -47,7 +48,6 @@ export function SearchBar(props: SearchBarProps) {
 
         getData();
     }, []);
-
 
     const theme = useMantineTheme();
 
@@ -145,9 +145,10 @@ export function SearchBar(props: SearchBarProps) {
                     ))}
                 </Group>
 
+                <RecipesContainer recipes={results} />
+
             </Container>
 
         </>
     );
 }
-

@@ -269,7 +269,7 @@ export async function searchRecipes(
     lastVisible,
   };
 
-  // console.log('Results', results);
+  console.log('Results', results);
 
   return results as Results;
 }

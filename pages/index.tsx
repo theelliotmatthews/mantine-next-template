@@ -4,8 +4,7 @@ import { ColorSchemeToggle } from '../components/ColorSchemeToggle/ColorSchemeTo
 export default function HomePage() {
   return (
     <>
-      <Welcome />
-      <ColorSchemeToggle />
+      Homepage
     </>
   );
 }

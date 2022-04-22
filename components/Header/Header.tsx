@@ -5,9 +5,9 @@ import Link from 'next/link';
 import {
     ChevronDown, Heart, Star, Message, Settings, SwitchHorizontal, Logout, PlayerPause, Trash,
 } from 'tabler-icons-react';
-import { PlantFoodLogo } from '../PlantFoodLogo/PlantFoodLogo';
 import { UserContext } from '../../lib/context';
 import { auth } from '../../lib/firebase';
+import PlantFoodLogo from '../../PlantFoodLogo/PlantFoodLogo';
 
 const useStyles = createStyles((theme) => ({
     nav: {
@@ -88,14 +88,15 @@ interface HeaderSimpleProps {
     links: { link: string; label: string }[];
 }
 
-export function HeaderSimple({ links }: HeaderSimpleProps) {
+export default function HeaderSimple({ links }: HeaderSimpleProps) {
     const [opened, toggleOpened] = useBooleanToggle(false);
     const [active, setActive] = useState('Search');
     const [userMenuOpened, setUserMenuOpened] = useState(false);
     const { classes, theme, cx } = useStyles();
-    const { user, username } = useContext(UserContext);
+    const { user, profile } = useContext(UserContext);
 
     console.log('User', user);
+    console.log('Profile', profile);
 
     const items = links.map((link) => (
         <Link
@@ -126,7 +127,7 @@ export function HeaderSimple({ links }: HeaderSimpleProps) {
 
                 </Group>
 
-                {user ?
+                {(user && profile) ?
                     <Group>
                         <Menu
                             size={260}
@@ -140,7 +141,7 @@ export function HeaderSimple({ links }: HeaderSimpleProps) {
                                     className={cx(classes.user, { [classes.userActive]: userMenuOpened })}
                                 >
                                     <Group spacing={4}>
-                                        <Avatar src={user.photoURL} alt={user.name} radius="xl" size={30} />
+                                        <Avatar src={(profile && profile.image) ? profile.image : user.photoURL} alt={user.name} radius="xl" size={30} />
                                         <Text weight={500} size="sm" sx={{ lineHeight: 1, color: theme.white }} mr={3}>
                                             {user.name}
                                         </Text>
