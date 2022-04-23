@@ -341,3 +341,13 @@ export interface CartLink {
   index: number;
   link: string;
 }
+
+export interface RecipeStatus {
+  saved: boolean;
+  cooked: boolean;
+  occurances: {
+    date: Date;
+    plannerId: string;
+    sharedPlanned: boolean;
+  };
+}
