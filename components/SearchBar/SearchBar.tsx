@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { TextInput, ActionIcon, useMantineTheme, Group, Container, MultiSelect } from '@mantine/core';
+import { TextInput, ActionIcon, useMantineTheme, Group, Container, MultiSelect, Loader, Center, Button } from '@mantine/core';
 import { Search, ArrowRight, ArrowLeft } from 'tabler-icons-react';
 import { searchRecipes } from '../../lib/search/recipe-search';
 import { loadIngredientFile } from '../../lib/search/ingredient-search';
@@ -30,6 +30,7 @@ export default function SearchBar(props: SearchBarProps) {
     const [limit, setLimit] = useState(4);
     const [showLoadMore, setShowLoadMore] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [ingredients, setIngredients] = useState([]);
     const [filters, setFilters] = useState([]);
     const [activeFilters, setActiveFilters] = useState([]);
@@ -68,7 +69,7 @@ export default function SearchBar(props: SearchBarProps) {
 
         // Call searchRecipes function
         /* eslint-disable-next-line */
-        const result = await searchRecipes(query, selectedIngredients, limit, null, '', macros, avoidances, activeFilters, '', recipeCreatorId, userRecipeType, [], collectionId) as Results
+        const result = await searchRecipes(query, selectedIngredients, limit, null, '', macros, avoidances, activeFilters, '', recipeCreatorId ? recipeCreatorId : '', userRecipeType ? userRecipeType : '', [], collectionId ? collectionId : '') as Results
 
         // Set results and start at
         setResults(result.results);
@@ -82,7 +83,7 @@ export default function SearchBar(props: SearchBarProps) {
 
     // Paginate results
     const loadMore = async () => {
-        // setLoading(true)
+        setLoadingMore(true);
         setShowLoadMore(false);
 
         /* eslint-disable-next-line */
@@ -96,7 +97,7 @@ export default function SearchBar(props: SearchBarProps) {
             ]));
         setStartAt(result.lastVisible);
 
-        setLoading(false);
+        setLoadingMore(false);
         setShowLoadMore(result.results.length === limit);
     };
 
@@ -145,7 +146,25 @@ export default function SearchBar(props: SearchBarProps) {
                     ))}
                 </Group>
 
-                <RecipesContainer recipes={results} />
+                {loading ?
+                    <Center py="xl">
+                        <Loader />
+                    </Center>
+                    :
+                    <RecipesContainer recipes={results} />
+                }
+
+                {showLoadMore &&
+                    <Center py="xl">
+                        <Button onClick={loadMore}>Load more</Button>
+                    </Center>
+                }
+
+                {loadingMore &&
+                    <Center py="xl">
+                        <Loader />
+                    </Center>
+                }
 
             </Container>
 

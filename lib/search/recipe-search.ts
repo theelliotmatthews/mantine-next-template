@@ -22,14 +22,16 @@ export async function searchRecipes(
 ) {
   // Check if this is a search in a users recipes, rather than the entire database
   // This is a bit different as we have to fetch the recipeId first from user_recipes, then fetch recipe data
-  const userRecipeSearch =
-    (creatorType && recipeCreatorId && userRecipeType) || collectionId !== null;
-  // console.log('----------------------------');
-  // console.log('Creator type', creatorType);
-  // console.log('recipeCreatorId', recipeCreatorId);
-  // console.log('userRecipeType', userRecipeType);
-  // console.log('collectionId', collectionId);
-  // console.log('User recipe search', userRecipeSearch);
+  const userRecipeSearch = (creatorType && recipeCreatorId && userRecipeType) || collectionId;
+
+  console.log('Check 1', creatorType && recipeCreatorId && userRecipeType);
+  console.log('Check 2', !collectionId);
+  console.log('----------------------------');
+  console.log('Creator type', creatorType);
+  console.log('recipeCreatorId', recipeCreatorId);
+  console.log('userRecipeType', userRecipeType);
+  console.log('collectionId', collectionId);
+  console.log('User recipe search', userRecipeSearch);
 
   // If no search term or ingredients, return
   if (searchTerm.length === 0 && ingredients.length === 0 && !userRecipeSearch && !combination) {
