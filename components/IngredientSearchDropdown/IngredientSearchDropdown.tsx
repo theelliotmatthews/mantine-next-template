@@ -1,25 +1,29 @@
 /* eslint-disable no-restricted-syntax */
 import { Select } from '@mantine/core';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useContext } from 'react';
 import { useModals } from '@mantine/modals';
-import { fetchIngredientData } from '../../lib/ingredients/ingredients';
 import { loadIngredientFile } from '../../lib/search/ingredient-search';
-import AddIngredientToList from '../AddIngredientToList/AddIngredientToList';
+import { AddIngredientToList } from '../AddIngredientToList/AddIngredientToList';
+import { UserContext } from '../../lib/context';
+import { firestorePromiseAdd } from '../../lib/ingredients/ingredients';
 
 interface IngredientSearchDropdownProps {
     placeholder: string;
     select: Function;
-    allowCustomIngredients?: boolean
+    allowCustomIngredients?: boolean;
 }
 
 export function IngredientSearchDropdown(props: IngredientSearchDropdownProps) {
     const modals = useModals();
+    const { user } = useContext(UserContext);
     const { placeholder, select, allowCustomIngredients } = props;
     const [ingredients, setIngredients] = useState<any>([]);
+    const [modalIncrement, setModalIncrement] = useState(0);
 
     useEffect(() => {
         const getData = async () => {
             const data = await loadIngredientFile(false);
+            console.log('INGRED FILE', data);
             setIngredients(data);
         };
 
@@ -28,26 +32,49 @@ export function IngredientSearchDropdown(props: IngredientSearchDropdownProps) {
 
     const [searchValue, setSearchValue] = useState('');
     const [defaultValue, setDefaultValue] = useState('Hello');
+    const [ingredientToAdd, setIngredientToAdd] = useState<{ ingredient: string; quantity?: string; unit?: string }>();
     const ref = useRef<any>();
 
+    const addToList = async () => {
+        const document = {
+            checked: false,
+            ingredient: ingredientToAdd?.ingredient,
+            quantity: ingredientToAdd?.quantity,
+            unit: ingredientToAdd?.unit || null,
+            listId: user.uid,
+            recipe: {
+                id: null,
+                title: null,
+            },
+        };
+
+        await firestorePromiseAdd('list_items', [document]);
+        ref.current.blur();
+    };
+
     const openIngredientModal = async (ingredient: string) => {
-        const ingredientData = await fetchIngredientData(ingredient);
+        // const ingredientData = await fetchIngredientData(ingredient);
+        ref.current.blur();
 
         modals.openConfirmModal({
             title: 'Add to list',
             children: (
                 <>
-                    <AddIngredientToList ingredient={ingredientData} />
+                    <AddIngredientToList ingredient={ingredient} ingredientFile={ingredients} updateIngredientToAdd={setIngredientToAdd} />
                 </>
             ),
             labels: { confirm: 'Add to list', cancel: 'Cancel' },
             onConfirm: () => {
-                console.log('CONFIRM INGREDIENTS TO ADD', ingredientsToAdd);
+                console.log('CONFIRM INGREDIENTS TO ADD', ingredientToAdd);
                 // addToList();
                 setModalIncrement(modalIncrement + 1);
             },
         });
-    }
+    };
+
+    useEffect(() => {
+        if (modalIncrement > 0) addToList();
+    }, [modalIncrement]);
 
     return (
         <div>
@@ -57,12 +84,13 @@ export function IngredientSearchDropdown(props: IngredientSearchDropdownProps) {
                 data={ingredients}
                 creatable={allowCustomIngredients}
                 onChange={(e) => {
-                    setSearchValue('');
-                    setDefaultValue('');
-                    select(e);
-                    openIngredientModal(e);
-                    console.log(e)
-                    ref.current.blur();
+                    if (e) {
+                        setSearchValue('');
+                        setDefaultValue('');
+                        select(e);
+                        openIngredientModal(e);
+                        ref.current.blur();
+                    }
                 }
                 }
                 getCreateLabel={(q) => `+ New ingredient ${q}`}

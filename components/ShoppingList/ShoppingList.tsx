@@ -1,15 +1,17 @@
 /* eslint-disable no-restricted-syntax */
 /* eslint-disable no-continue */
-import { Button, Group, Header, Loader, Stack, Text, Title } from '@mantine/core';
+import { Button, Group, Loader, Stack, Text, Title } from '@mantine/core';
+import { useModals } from '@mantine/modals';
 import { useEffect, useContext, useState } from 'react';
 import { BrandGoogle, Share, Trash } from 'tabler-icons-react';
 import { UserContext } from '../../lib/context';
 import { firestore } from '../../lib/firebase';
 import { fetchIngredientData } from '../../lib/ingredients/ingredients';
-import { AddToListIngredient, CombinedAmount, IngredientFormatted, ListCategory, ListIngredient, Recipe } from '../../lib/types';
+import { AddToListIngredient, CombinedAmount, ListCategory, ListIngredient, Recipe } from '../../lib/types';
+import { AddToAmazonFresh } from '../AddToAmazonFresh/AddToAmazonFresh';
 import Dropdown from '../Dropdown/Dropdown';
-import IngredientSearchDropdown from '../IngredientSearchDropdown/IngredientSearchDropdown';
-import ShoppingListIngredient from '../ShoppingListIngredient.tsx/ShoppingListIngredient';
+import { IngredientSearchDropdown } from '../IngredientSearchDropdown/IngredientSearchDropdown';
+import { ShoppingListIngredient } from '../ShoppingListIngredient.tsx/ShoppingListIngredient';
 
 // import IngredientSearchDropdown from '../ui/ingredient-search-dropdown/ingredient-search-dropdown';
 // import Dropdown from '../ui/dropdown/dropdown';
@@ -59,7 +61,7 @@ const aisleCategories: ListCategory[] = [
 ];
 
 export default function ShoppingList() {
-    // const { showModal } = useContext(ModalContext);
+    const modals = useModals();
     const { user } = useContext(UserContext);
     const [loading, setLoading] = useState(true);
     const [list, setList] = useState<ListIngredient[]>([]);
@@ -165,12 +167,16 @@ export default function ShoppingList() {
         // console.log('Update all to ', check);
 
         const promises: Promise<any>[] = [];
-        ingredient.combinedAmounts.forEach(amount => {
-            amount.ids.forEach(id => {
-                const promise = firestore.collection('list_items').doc(id).update({ checked: check });
-                promises.push(promise);
+        if (ingredient.combinedAmounts) {
+            ingredient.combinedAmounts.forEach(amount => {
+                if (amount.ids) {
+                    amount.ids.forEach(id => {
+                        const promise = firestore.collection('list_items').doc(id).update({ checked: check });
+                        promises.push(promise);
+                    });
+                }
             });
-        });
+        }
 
         await Promise.all(promises);
     };
@@ -181,10 +187,12 @@ export default function ShoppingList() {
         // console.log('Ingredient ', ingredient);
 
         const promises: Promise<any>[] = [];
-        amount.ids.forEach(id => {
-            const promise = firestore.collection('list_items').doc(id).update({ checked: !amount.checked });
-            promises.push(promise);
-        });
+        if (amount.ids) {
+            amount.ids.forEach(id => {
+                const promise = firestore.collection('list_items').doc(id).update({ checked: !amount.checked });
+                promises.push(promise);
+            });
+        }
 
         await Promise.all(promises);
     };
@@ -212,8 +220,18 @@ export default function ShoppingList() {
 
     // Order on Amazon
     const orderOnAmazon = () => {
-        console.log('Ordering on Amazon');
-        // showModal('amazon', checkedOffList);
+        modals.openConfirmModal({
+            title: 'Order on Amazon Fresh',
+            children: (
+                <>
+                    <AddToAmazonFresh list={checkedOffList} />
+                </>
+            ),
+            labels: { cancel: 'Cancel', confirm: 'Add' },
+            confirmProps: {
+                hidden: true,
+            },
+        });
     };
 
     const clearList = async () => {

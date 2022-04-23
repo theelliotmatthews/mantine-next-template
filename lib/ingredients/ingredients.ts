@@ -1,7 +1,8 @@
-import { auth, firestore } from "../firebase";
+import { auth, firestore } from '../firebase';
+import { Ingredient, IngredientFormatted } from '../types';
 
 export async function addIngredientsToList(ingredients: any[]) {
-  await firestorePromiseAdd("list_items", ingredients);
+  await firestorePromiseAdd('list_items', ingredients);
 }
 
 export async function firestorePromiseAdd(collection: string, docs: any) {
@@ -13,26 +14,25 @@ export async function firestorePromiseAdd(collection: string, docs: any) {
   });
 
   await Promise.all(promises).then((values) => {
-    console.log("Promise values", values);
+    console.log('Promise values', values);
   });
 }
 
-export async function fetchIngredientData(ingredient) {
-  let data = null;
+export async function fetchIngredientData(ingredient: string) {
   try {
     const res = await firestore
-      .collection("ingredients")
-      .where("ingredient", "==", ingredient)
+      .collection('ingredients')
+      .where('ingredient', '==', ingredient)
       .get();
     if (res.docs.length > 0) {
-      data = {
+      return {
         id: res.docs[0].id,
-        ...res.docs[0].data(),
+        ...(res.docs[0].data() as Ingredient),
       };
     }
   } catch (e) {
-    console.warn("cant fetch data for ingredient");
+    console.warn('cant fetch data for ingredient');
   }
   // console.log("Data from ingredient fetch", data, ingredient);
-  return data;
+  return null;
 }

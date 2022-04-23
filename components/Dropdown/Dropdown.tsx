@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { createStyles, UnstyledButton, Menu, Image, Group } from '@mantine/core';
+import React, { useEffect, useState } from 'react';
+import { createStyles, UnstyledButton, Menu, Image, Group, ScrollArea } from '@mantine/core';
 import { ChevronDown } from 'tabler-icons-react';
 
 const useStyles = createStyles((theme, { opened }: { opened: boolean }) => ({
@@ -37,19 +37,21 @@ const useStyles = createStyles((theme, { opened }: { opened: boolean }) => ({
     },
 }));
 
+interface DropdownItem {
+    label: string;
+    value: string;
+    image?: string;
+}
 interface DropdownProps {
-    items: {
-        label: string;
-        value: string;
-        image?: string;
-    }[];
+    items: DropdownItem[];
     selectItem: Function;
+    default?: DropdownItem
 }
 
 export default function Dropdown(props: DropdownProps) {
     const [opened, setOpened] = useState(false);
     const { classes } = useStyles({ opened });
-    const [selected, setSelected] = useState(props.items[0]);
+    const [selected, setSelected] = useState(props.default ? props.default : props.items[0]);
     const items = props.items.map((item) => (
         <Menu.Item
             icon={item.image ? <Image src={item.image} width={18} height={18} /> : null}
@@ -64,24 +66,34 @@ export default function Dropdown(props: DropdownProps) {
         </Menu.Item>
     ));
 
+    useEffect(() => {
+        if (props.default) setSelected(props.default);
+    }, [props.default]);
+
     return (
-        <Menu
-            transition="pop"
-            transitionDuration={150}
-            onOpen={() => setOpened(true)}
-            onClose={() => setOpened(false)}
-            radius="md"
-            control={
-                <UnstyledButton className={classes.control}>
-                    <Group spacing="xs">
-                        {selected.image ? <Image src={selected.image} width={22} height={22} /> : null}
-                        <span className={classes.label}>{selected.label}</span>
-                    </Group>
-                    <ChevronDown size={16} className={classes.icon} />
-                </UnstyledButton>
+        <>
+            {selected ?
+                <Menu
+                    transition="pop"
+                    transitionDuration={150}
+                    onOpen={() => setOpened(true)}
+                    onClose={() => setOpened(false)}
+                    radius="md"
+                    control={
+                        <UnstyledButton className={classes.control}>
+                            <Group spacing="xs">
+                                {selected.image ? <Image src={selected.image} width={22} height={22} /> : null}
+                                <span className={classes.label}>{selected.label}</span>
+                            </Group>
+                            <ChevronDown size={16} className={classes.icon} />
+                        </UnstyledButton>
+                    }
+                >
+                    <ScrollArea style={{ maxHeight: 250, overflowY: 'scroll' }} type="scroll">
+                        {items}
+                    </ScrollArea>
+                </Menu> : null
             }
-        >
-            {items}
-        </Menu>
+        </>
     );
 }

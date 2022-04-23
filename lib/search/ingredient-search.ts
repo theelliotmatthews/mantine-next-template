@@ -1,4 +1,5 @@
 import { auth, firestore } from '../firebase';
+import { Ingredient } from '../types';
 
 export async function searchIngredients(searchTerm: string, ingredients: any[]) {
   // If no search term or ingredients, return
@@ -66,14 +67,27 @@ export async function loadIngredientFile(namesOnly: boolean) {
   json.ingredients_collection.forEach((ingredient: { ingredient: any }) => {
     if (!ingredients.find((x) => x.ingredient === ingredient.ingredient)) {
       ingredients.push({
-        ...ingredients,
+        ...ingredient,
         label: ingredient.ingredient,
         value: ingredient.ingredient,
       });
     }
   });
 
-  return ingredients;
+  return ingredients.sort((a, b) =>
+    a.label.length > b.label.length ? 1 : b.label.length > a.label.length ? -1 : 0
+  );
+}
+
+export async function findExactIngredient(search: string, ingredients: Ingredient[]) {
+  console.log('Ingredient files', ingredients);
+
+  const foundIngredient = ingredients.find((x) => x.ingredient === search);
+  if (foundIngredient) {
+    return foundIngredient;
+  }
+
+  return null;
 }
 
 export async function getAvoidances(userId) {

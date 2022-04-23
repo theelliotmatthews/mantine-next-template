@@ -39,6 +39,43 @@ export interface Recipe {
   nutrients: Object;
 }
 
+export interface Ingredient {
+  also_called?: string[];
+  alternatives?: string[];
+  checked?: boolean;
+  example_servings?: {
+    frequency: number;
+    quantity: string;
+    unit: string;
+  }[];
+  ingredient?: string;
+  ingredient_map?: Object;
+  order_by?: Object;
+  shopping_list_category?: string;
+  supermarket_product?: boolean;
+  usda_data?: USDAData;
+  exampleServings?: any[];
+}
+
+export interface USDAData {
+  data_type: string;
+  default_serving?: any;
+  fdc_id?: number;
+  grams_per_cup?: number;
+  portion_conversion?: {
+    quantity_conversion: {
+      gram_weight?: string;
+      portion_quantity?: string;
+      usda_portion_id?: string;
+    }[];
+  };
+  reference_unit: string;
+  source_name: string;
+  usda_category: string;
+  usda_name: string;
+  usda_nutrition: any[];
+}
+
 export interface IngredientFormatted {
   ingredient: string;
   mappedIngredient: boolean;
@@ -273,10 +310,11 @@ export interface ListCategory {
 }
 
 export interface CombinedAmount {
-  ids: string[];
+  ids?: string[];
   checked?: boolean;
   unit?: string;
   quantity?: number;
+  amount?: number;
 }
 
 export interface IngredientOccurance {
@@ -284,4 +322,22 @@ export interface IngredientOccurance {
   recipeId: string;
   unit: string;
   quantity: number;
+}
+
+export interface AmazonCartLink {
+  ingredients: {
+    name: string;
+    componentIndex: number;
+    quantityList: any[];
+  }[];
+  saved: boolean;
+  recipeComposition: {
+    saved: boolean;
+  };
+  tag: string;
+}
+
+export interface CartLink {
+  index: number;
+  link: string;
 }

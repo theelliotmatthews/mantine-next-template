@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Check, InfoCircle } from 'tabler-icons-react';
 // import IngredientDropdown from '../ingredients/ingredient-dropdown';
 import { formatUnit, formatQuantity } from '../../lib/formatting';
-import IngredientDropdown from '../IngredientDropdown/IngredientDropdown';
+import { IngredientDropdown } from '../IngredientDropdown/IngredientDropdown';
 
 interface ShoppingListIngredientProps {
     ingredient: any;
