@@ -3,9 +3,11 @@ import { useState } from 'react';
 import { AppProps } from 'next/app';
 import { getCookie, setCookies } from 'cookies-next';
 import Head from 'next/head';
-import { MantineProvider, ColorScheme, ColorSchemeProvider, Global } from '@mantine/core';
+import { MantineProvider, ColorScheme, ColorSchemeProvider, Global, Container } from '@mantine/core';
 import { NotificationsProvider } from '@mantine/notifications';
 import { ModalsProvider } from '@mantine/modals';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend'
 import { UserContext } from '../lib/context';
 import { useUserData } from '../lib/hooks';
 import HeaderSimple from '../components/Header/Header';
@@ -54,15 +56,19 @@ export default function App(props: AppProps & { colorScheme: ColorScheme }) {
                   //   image: 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?ixid=MXwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHw%3D&ixlib=rb-1.2.1&auto=format&fit=crop&w=255&q=80',
                   // }}
                   links={[
-                    { label: 'Search', link: 'search' },
-                    { label: 'Social', link: 'social' },
-                    { label: 'My Recipes', link: 'my-recipes' },
-                    { label: 'Planner', link: 'planner' },
-                    { label: 'Shopping List', link: 'list' },
-                    { label: 'Venues', link: 'venues' },
+                    { label: 'Search', link: '../search' },
+                    { label: 'Social', link: '../social' },
+                    { label: 'My Recipes', link: '../my-recipes/saved' },
+                    { label: 'Planner', link: '../planner' },
+                    { label: 'Shopping List', link: '../list' },
+                    { label: 'Venues', link: '../venues' },
                   ]}
                 />
-                <Component {...pageProps} />
+                {/* <DndProvider backend={HTML5Backend}> */}
+                <Container size="xl" py="xs">
+                  <Component {...pageProps} />
+                </Container>
+                {/* </DndProvider> */}
               </NotificationsProvider>
             </ModalsProvider>
           </MantineProvider>

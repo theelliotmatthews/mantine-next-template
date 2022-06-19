@@ -1,17 +1,17 @@
-import { auth, firestore } from "./firebase";
-import { getRecipeById } from "./recipes/recipes";
-import { createNotification } from "./notifications";
-import { Collection, Recipe, Snapshot } from "./types";
-import { firestorePromiseAdd } from "./firestore";
-import { getPublicProfileForUser } from "./social";
+import { auth, firestore } from './firebase';
+import { getRecipeById } from './recipes/recipes';
+import { createNotification } from './notifications';
+import { Collection, Recipe, Snapshot } from './types';
+import { firestorePromiseAdd } from './firestore';
+import { fetchSingleEntity, getPublicProfileForUser } from './social';
 
 export async function getCollections(userId) {
-  let collections = [];
+  const collections = [];
 
-  let query = firestore.collection("collections").where("userId", "==", userId);
+  const query = firestore.collection('collections').where('userId', '==', userId);
 
-  await query.get().then(function (querySnapshot) {
-    querySnapshot.forEach(function (doc) {
+  await query.get().then((querySnapshot) => {
+    querySnapshot.forEach((doc) => {
       doc.data().userId && collections.push({ id: doc.id, ...doc.data() });
     });
   });
@@ -25,26 +25,26 @@ export async function searchCollections(
   startAt: any,
   userId: string
 ) {
-  console.log("Search collections", searchTerm);
-  console.log("startAt", startAt);
+  console.log('Search collections', searchTerm);
+  console.log('startAt', startAt);
   // Construct reference
-  const collectionRef = firestore.collection("collections");
+  const collectionRef = firestore.collection('collections');
 
   // Construct query
   let query: any = collectionRef;
 
   // Work with the search term
   if (searchTerm.length > 0) {
-    let cleanedSearchTerm = searchTerm
-      .replace(/['.,\/#!$%\^&\*;:{}=\-_`~()]/g, "")
+    const cleanedSearchTerm = searchTerm
+      .replace(/['.,\/#!$%\^&\*;:{}=\-_`~()]/g, '')
       .toLowerCase()
       .trim()
-      .split(" ");
+      .split(' ');
 
     // Cycle through cleaned search terms and build query
     cleanedSearchTerm.forEach((word) => {
-      let parameter = "search_terms." + word.split(" ").join("_");
-      query = query.where(parameter, "==", true);
+      const parameter = `search_terms.${word.split(' ').join('_')}`;
+      query = query.where(parameter, '==', true);
     });
   }
 
@@ -59,7 +59,7 @@ export async function searchCollections(
   }
 
   // Add userId
-  query = query.where("userId", "==", userId);
+  query = query.where('userId', '==', userId);
 
   // Reset the last visible for a new pagination query
   let lastVisible = null;
@@ -84,17 +84,20 @@ export async function searchCollections(
     promises.push(promise);
   }
 
-  console.log("Docs", docs);
+  console.log('Docs', docs);
 
-  let collectionsWithData = [];
-  await Promise.all(promises).then((values) => {
+  const collectionsWithData = [];
+  await Promise.all(promises).then(async (values) => {
     // Match up
     for (const collection of docs) {
       for (const r of values) {
         if (collection.id === r.id) {
+          const entity = await fetchSingleEntity('user', collection.userId);
+
           const newObject = {
             ...collection,
             ...r,
+            entity,
           };
           collectionsWithData.push(newObject);
           break;
@@ -102,13 +105,14 @@ export async function searchCollections(
       }
     }
   });
-  console.log("Collections with data", collectionsWithData);
+
+  console.log('Collections with data', collectionsWithData);
   docs = collectionsWithData;
 
   // Return
-  let results = {
+  const results = {
     results: docs,
-    lastVisible: lastVisible,
+    lastVisible,
   };
 
   return results;
@@ -118,10 +122,10 @@ export async function getCollectionFeaturedImage(collectionId: string) {
   let image = null;
 
   const res = await firestore
-    .collection("user_recipes")
-    .where("type", "==", "collection")
-    .where("collectionId", "==", collectionId)
-    .orderBy("added", "desc")
+    .collection('user_recipes')
+    .where('type', '==', 'collection')
+    .where('collectionId', '==', collectionId)
+    .orderBy('added', 'desc')
     .limit(1)
     .get();
 
@@ -133,59 +137,59 @@ export async function getCollectionFeaturedImage(collectionId: string) {
 
   return {
     id: collectionId,
-    image: image,
+    image,
   };
 }
 
 export async function updateCollectionCount(collectionId, increase) {
   // Get current count first
-  let res = await firestore.collection("collections").doc(collectionId).get();
-  let data = res.data();
-  let currentCount = data.count;
+  const res = await firestore.collection('collections').doc(collectionId).get();
+  const data = res.data();
+  const currentCount = data.count;
   await firestore
-    .collection("collections")
+    .collection('collections')
     .doc(collectionId)
     .update({ count: increase ? currentCount + 1 : currentCount - 1 });
 }
 
 export async function getCollectionCount(collectionId) {
-  let res = await firestore.collection("collections").doc(collectionId).get();
-  let data = res.data();
+  const res = await firestore.collection('collections').doc(collectionId).get();
+  const data = res.data();
   return data.count;
 }
 
 export async function getCollectionsWithInfo(userId) {
-  let collections = [];
-  let collectionsWithData = [];
+  const collections = [];
+  const collectionsWithData = [];
   //let query = firestore.collection('collections').where('userId', '==', userId)
-  let query = firestore
-    .collection("collections")
-    .where("userId", "==", userId)
-    .orderBy("createdAt", "desc");
+  const query = firestore
+    .collection('collections')
+    .where('userId', '==', userId)
+    .orderBy('createdAt', 'desc');
 
-  await query.get().then(function (querySnapshot) {
-    querySnapshot.forEach(function (doc) {
+  await query.get().then((querySnapshot) => {
+    querySnapshot.forEach((doc) => {
       doc.data().userId && collections.push({ ...doc.data(), id: doc.id });
     });
   });
 
   collections.forEach(async (collection) => {
     // Get the first recipe in the collection to use as featured image
-    let res = await firestore
-      .collection("user_collection_recipes")
-      .where("collectionId", "==", collection.id)
-      .orderBy("added", "desc")
+    const res = await firestore
+      .collection('user_collection_recipes')
+      .where('collectionId', '==', collection.id)
+      .orderBy('added', 'desc')
       .limit(1)
       .get();
 
-    let copy = collection;
+    const copy = collection;
     if (res.docs[0]) {
-      let data = res.docs[0].data();
+      const data = res.docs[0].data();
 
-      let featuredRecipe = await getRecipeById(data.recipeId);
-      copy["image"] = featuredRecipe.image;
+      const featuredRecipe = await getRecipeById(data.recipeId);
+      copy.image = featuredRecipe.image;
     } else {
-      copy["image"] = "https://i.ibb.co/ZN4rhF0/noimage.png";
+      copy.image = 'https://i.ibb.co/ZN4rhF0/noimage.png';
     }
     collectionsWithData.push(copy);
   });
@@ -194,48 +198,48 @@ export async function getCollectionsWithInfo(userId) {
 }
 
 export async function getSingleCollectionWithInfo(collectionId) {
-  let res = await firestore.collection("collections").doc(collectionId).get();
-  let collection = { ...res.data(), id: res.id } as Collection;
-  console.log("Collection here:", collection);
-  let userRes = await firestore
-    .collection("user_collection_recipes")
-    .where("collectionId", "==", collectionId)
-    .orderBy("added", "desc")
+  const res = await firestore.collection('collections').doc(collectionId).get();
+  const collection = { ...res.data(), id: res.id } as Collection;
+  console.log('Collection here:', collection);
+  const userRes = await firestore
+    .collection('user_collection_recipes')
+    .where('collectionId', '==', collectionId)
+    .orderBy('added', 'desc')
     .limit(1)
     .get();
-  let userDataRes = await getPublicProfileForUser(collection.userId);
-  console.log("User Data Res", userDataRes);
+  const userDataRes = await getPublicProfileForUser(collection.userId);
+  console.log('User Data Res', userDataRes);
 
   if (userDataRes) {
-    collection["userData"] = userDataRes;
+    collection.userData = userDataRes;
   }
 
   if (userRes.docs[0] && userRes.docs[0].exists) {
-    let data = userRes.docs[0].data();
+    const data = userRes.docs[0].data();
 
-    let featuredRecipe = await getRecipeById(data.recipeId);
-    collection["image"] = featuredRecipe.image;
+    const featuredRecipe = await getRecipeById(data.recipeId);
+    collection.image = featuredRecipe.image;
   } else {
-    collection["image"] = "https://i.ibb.co/ZN4rhF0/noimage.png";
+    collection.image = 'https://i.ibb.co/ZN4rhF0/noimage.png';
   }
 
   return collection as Collection;
 }
 
 export async function createCollection(userId, title) {
-  let searchTerms = {};
+  const searchTerms = {};
 
-  let searchTermsSplit = title
-    .replace(/['.,\/#!$%\^&\*;:{}=\-_`~()]/g, "")
+  const searchTermsSplit = title
+    .replace(/['.,\/#!$%\^&\*;:{}=\-_`~()]/g, '')
     .toLowerCase()
     .trim()
-    .split(" ");
+    .split(' ');
 
   for (const term of searchTermsSplit) {
     searchTerms[term] = true;
   }
 
-  let res = await firestore.collection("collections").add({
+  const res = await firestore.collection('collections').add({
     userId,
     title,
     createdAt: new Date(),
@@ -247,10 +251,10 @@ export async function createCollection(userId, title) {
 
 export async function getCollection(id: string) {
   try {
-    let res = await firestore.collection("collections").doc(id).get();
+    const res = await firestore.collection('collections').doc(id).get();
 
     if (!res.exists) {
-      throw Error("Collection does not exist");
+      throw Error('Collection does not exist');
     }
 
     //console.log('Res.data.recipes', res.data().recipes)
@@ -267,10 +271,10 @@ export async function getCollection(id: string) {
 export async function getSingleCollection(id) {
   try {
     let recipesInCollection = [];
-    let res = await firestore.collection("collections").doc(id).get();
+    const res = await firestore.collection('collections').doc(id).get();
 
     if (!res.exists) {
-      throw Error("Collection does not exist");
+      throw Error('Collection does not exist');
     }
 
     //console.log('Res.data.recipes', res.data().recipes)
@@ -284,32 +288,32 @@ export async function getSingleCollection(id) {
 }
 
 export async function getSingleCollectionWithRecipeData(id) {
-  console.log("Collection ID:", id);
+  console.log('Collection ID:', id);
   try {
-    let recipes = [];
-    let res = await firestore.collection("collections").doc(id).get();
+    const recipes = [];
+    const res = await firestore.collection('collections').doc(id).get();
 
     if (!res.exists) {
-      throw Error("Collection does not exist");
+      throw Error('Collection does not exist');
     }
 
-    let data = res.data();
-    let collectionTitle = data.title;
+    const data = res.data();
+    const collectionTitle = data.title;
 
-    let promises = [];
+    const promises = [];
 
     //console.log('Res.data.recipes', res.data().recipes)
-    let res2 = await firestore
-      .collection("user_collection_recipes")
-      .where("collectionId", "==", id)
-      .orderBy("added", "desc")
+    const res2 = await firestore
+      .collection('user_collection_recipes')
+      .where('collectionId', '==', id)
+      .orderBy('added', 'desc')
       .get();
 
-    console.log("res2", res2);
+    console.log('res2', res2);
     for (const doc of res2.docs) {
-      let res2data = doc.data();
+      const res2data = doc.data();
 
-      let promise = getRecipeById(res2data.recipeId);
+      const promise = getRecipeById(res2data.recipeId);
       promises.push(promise);
     }
 
@@ -320,16 +324,16 @@ export async function getSingleCollectionWithRecipeData(id) {
       });
     });
 
-    console.log("Recipes", recipes);
+    console.log('Recipes', recipes);
 
-    return { title: collectionTitle, recipes: recipes };
+    return { title: collectionTitle, recipes };
   } catch (err) {
     console.warn(err);
   }
 }
 
 export async function addRecipeToCollections(userId, recipeId, collectionIds) {
-  let recipe = await getRecipeById(recipeId);
+  const recipe = await getRecipeById(recipeId);
 
   if (!recipe) return;
 
@@ -349,74 +353,56 @@ export async function addRecipeToCollections(userId, recipeId, collectionIds) {
 
   for (const id of collectionIds) {
     // Check if recipe already in collection
-    let res = await firestore
-      .collection("user_recipes")
-      .where("type", "==", "collection")
-      .where("collectionId", "==", id)
-      .where("recipeId", "==", recipeId)
+    const res = await firestore
+      .collection('user_recipes')
+      .where('type', '==', 'collection')
+      .where('collectionId', '==', id)
+      .where('recipeId', '==', recipeId)
       .get();
 
     if (!res.docs[0] || !res.docs[0].exists) {
-      await firestore.collection("user_recipes").add({
+      await firestore.collection('user_recipes').add({
         uid: userId,
         recipeId,
         collectionId: id,
         added: new Date(),
         recipeTitle: recipe.title,
         recipeSearchTerms: recipe.search_terms,
-        type: "collection",
+        type: 'collection',
       });
       await updateCollectionCount(id, true);
     } else {
-      await firestore
-        .collection("user_recipes")
-        .doc(res.docs[0].id)
-        .update({ added: new Date() });
+      await firestore.collection('user_recipes').doc(res.docs[0].id).update({ added: new Date() });
     }
 
     // Check what the current count of the collection is. If it is a multiple of 5 and there hasn't already been a notification sent, send one.
-    let collectionCount = await getCollectionCount(id);
+    const collectionCount = await getCollectionCount(id);
     if (collectionCount % 5 == 0) {
       // Now check if the notification has already happened
-      let check = (await firestore
-        .collection("notifications")
-        .where("userId", "==", userId)
-        .where("type", "==", "collection_count")
-        .where("collectionCount", "==", collectionCount)
+      const check = (await firestore
+        .collection('notifications')
+        .where('userId', '==', userId)
+        .where('type', '==', 'collection_count')
+        .where('collectionCount', '==', collectionCount)
         .get()) as any;
       if (!check.exists) {
         // Create the notification
-        await createNotification(
-          null,
-          userId,
-          "collection_count",
-          null,
-          null,
-          id,
-          collectionCount
-        );
+        await createNotification(null, userId, 'collection_count', null, null, id, collectionCount);
       }
     }
   }
 }
 
-export async function removeRecipeFromCollections(
-  userId,
-  recipeId,
-  collectionIds
-) {
+export async function removeRecipeFromCollections(userId, recipeId, collectionIds) {
   collectionIds.forEach(async (id) => {
-    let res = await firestore
-      .collection("user_collection_recipes")
-      .where("collectionId", "==", id)
-      .where("recipeId", "==", recipeId)
+    const res = await firestore
+      .collection('user_collection_recipes')
+      .where('collectionId', '==', id)
+      .where('recipeId', '==', recipeId)
       .get();
     if (res.docs[0]) {
       // Remove from collection
-      await firestore
-        .collection("user_collection_recipes")
-        .doc(res.docs[0].id)
-        .delete();
+      await firestore.collection('user_collection_recipes').doc(res.docs[0].id).delete();
 
       // Update count of collection
       await updateCollectionCount(id, false);
@@ -425,29 +411,29 @@ export async function removeRecipeFromCollections(
 }
 
 export async function deleteCollection(id) {
-  await firestore.collection("collections").doc(id).delete();
+  await firestore.collection('collections').doc(id).delete();
 }
 
 export async function fetchCollectionAuthor(id) {
-  let res = await firestore.collection("collections").doc(id).get();
-  let data = res.data();
+  const res = await firestore.collection('collections').doc(id).get();
+  const data = res.data();
 
-  let res2 = await firestore.collection("profiles").doc(data.userId).get();
-  console.log("Res2 data author:", res2.data());
+  const res2 = await firestore.collection('profiles').doc(data.userId).get();
+  console.log('Res2 data author:', res2.data());
   return { ...res2.data(), id: res2.id };
 }
 
 export async function checkWhichCollectionsContainRecipe(recipeId, userId) {
-  let res = await firestore
-    .collection("user_recipes")
-    .where("recipeId", "==", recipeId)
-    .where("uid", "==", userId)
-    .where("type", "==", "collection")
+  const res = await firestore
+    .collection('user_recipes')
+    .where('recipeId', '==', recipeId)
+    .where('uid', '==', userId)
+    .where('type', '==', 'collection')
     .get();
 
-  let collections = [];
+  const collections = [];
   for (const doc of res.docs) {
-    let data = doc.data();
+    const data = doc.data();
     collections.push(data.collectionId);
   }
 
@@ -455,5 +441,5 @@ export async function checkWhichCollectionsContainRecipe(recipeId, userId) {
 }
 
 export async function updateCollectionTitle(id: string, title: string) {
-  await firestore.collection("collections").doc(id).update({ title: title });
+  await firestore.collection('collections').doc(id).update({ title });
 }

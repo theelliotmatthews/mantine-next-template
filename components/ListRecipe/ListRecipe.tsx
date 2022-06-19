@@ -4,7 +4,7 @@ import { Button, Group, Stack, Text } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { AddToShoppingListIngredient } from '../AddToShoppingListIngredient/AddToShoppingListIngredient';
 import { QuantityInput } from '../QuantityInput/QuantityInput';
-import { AddToListItemProps } from '../AddToList/AddToList';
+import { AddToListItemProps } from '../ColorSchemeToggle/AddToList/AddToList';
 
 interface ListRecipeProps {
     recipe: any;

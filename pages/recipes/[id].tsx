@@ -2,6 +2,21 @@ import { firestore } from '../../lib/firebase';
 import { getRecipeById } from '../../lib/recipes/recipes';
 import { Recipe } from '../../lib/types';
 
+import { useEffect, useState, useContext } from 'react'
+import { ModalContext, SlideoverContext } from "../../../lib/context";
+import classNames from 'classnames';
+import Button from '../../ui/button/button';
+import Icon from '../../ui/icon/icon';
+import { checkRecipeStatus, toggleRecipeStatus, fetchRecipeCreatorData } from '../../../lib/recipes/recipes'
+import { UserContext } from "../../../lib/context";
+
+import ImageCreator from './image-creator';
+import WhiteBox from '../../ui/white-box/white-box';
+import RecipeIngredients from './recipe-ingredients';
+import RecipeNutrition from './recipe-nutrition';
+import SimilarRecipes from './similar-recipes';
+import Reviews from '../reviews/reviews';
+
 export async function getStaticProps({ params }: { params: any }) {
     const { id } = params;
 

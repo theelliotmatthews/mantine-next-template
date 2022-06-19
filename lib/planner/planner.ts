@@ -1,5 +1,6 @@
-import { auth, firestore } from "../firebase";
-import { getRecipeById } from "../recipes/recipes";
+import { KeyObject } from 'crypto';
+import { auth, firestore } from '../firebase';
+import { getRecipeById } from '../recipes/recipes';
 
 export async function getAllCollaborativePlanners(
   userId,
@@ -7,19 +8,19 @@ export async function getAllCollaborativePlanners(
   collaborativeOnly,
   favourites
 ) {
-  let plannerIds = [];
+  const plannerIds = [];
   let planners = [];
 
   if (favourites) {
     try {
-      let res = await firestore
-        .collection("collaborative_planner_favourites")
-        .where("uid", "==", userId)
-        .orderBy("created", "desc")
+      const res = await firestore
+        .collection('collaborative_planner_favourites')
+        .where('uid', '==', userId)
+        .orderBy('created', 'desc')
         .get();
 
       for (const doc of res.docs) {
-        let data = doc.data();
+        const data = doc.data();
         plannerIds.push({ plannerId: data.plannerId, inviteId: doc.id });
       }
     } catch (e) {
@@ -27,15 +28,15 @@ export async function getAllCollaborativePlanners(
     }
   } else {
     try {
-      let res = await firestore
-        .collection("collaborative_planner_invites")
-        .where("accepted", "==", invitesOnly ? false : true)
-        .where("requestTo", "==", userId)
-        .orderBy("created", "desc")
+      const res = await firestore
+        .collection('collaborative_planner_invites')
+        .where('accepted', '==', !invitesOnly)
+        .where('requestTo', '==', userId)
+        .orderBy('created', 'desc')
         .get();
 
       for (const doc of res.docs) {
-        let data = doc.data();
+        const data = doc.data();
 
         plannerIds.push({ plannerId: data.plannerId, inviteId: doc.id });
       }
@@ -45,7 +46,7 @@ export async function getAllCollaborativePlanners(
   }
 
   try {
-    let promises = [];
+    const promises = [];
     for (const planner of plannerIds) {
       const promise = getCollaborativePlannerById(planner);
       promises.push(promise);
@@ -59,61 +60,52 @@ export async function getAllCollaborativePlanners(
   }
 
   if (collaborativeOnly) {
-    planners = planners.filter((planner) => {
-      return planner.collaborative || planner.createdBy == userId;
-    });
+    planners = planners.filter((planner) => planner.collaborative || planner.createdBy == userId);
   }
 
   return planners;
 }
 
 export async function getCollaborativePlannerById(planner) {
-  let res = await firestore
-    .collection("collaborative_planners")
-    .doc(planner.plannerId)
-    .get();
+  const res = await firestore.collection('collaborative_planners').doc(planner.plannerId).get();
 
-  return res.exists
-    ? { ...res.data(), id: res.id, inviteId: planner.inviteId }
-    : null;
+  return res.exists ? { ...res.data(), id: res.id, inviteId: planner.inviteId } : null;
 }
 
 export async function getRecipesInPlanner(
-  collaborativePlannerId: string,
   userId: string,
   weekStart: Date,
   weekEnd: Date,
-  loadRecipeData?: boolean
+  loadRecipeData?: boolean,
+  collaborativePlannerId?: string
 ) {
-  const plannerRef = firestore.collection("planner");
+  const plannerRef = firestore.collection('planner');
 
   let query: any = plannerRef;
 
-  query = query
-    .where("date", ">=", weekStart)
-    .where("date", "<=", weekEnd)
-    .orderBy("date", "asc");
+  query = query.where('date', '>=', weekStart).where('date', '<=', weekEnd).orderBy('date', 'asc');
 
   if (collaborativePlannerId) {
-    query = query.where("plannerId", "==", collaborativePlannerId);
+    query = query.where('plannerId', '==', collaborativePlannerId);
   } else {
-    query = query.where("createdBy", "==", userId);
+    query = query.where('createdBy', '==', userId);
   }
 
-  let planner = [];
+  const planner = [];
   const res = await query.get();
   for (const doc of res.docs) {
-    let data = doc.data();
+    const data = doc.data();
     data.date = data.date.toDate();
-    if (collaborativePlannerId)
+    if (collaborativePlannerId) {
       data.collaborativePlannerId = collaborativePlannerId;
+    }
     planner.push({ ...data, id: doc.id });
   }
 
   if (loadRecipeData) {
-    let promises = [];
+    const promises = [];
 
-    let plannerRecipes = [];
+    const plannerRecipes = [];
 
     planner.forEach((recipe) => {
       const promise = getRecipeById(recipe.meal.id);
@@ -148,7 +140,7 @@ export async function removeRecipeFromPlanner(
   recipe?: any,
   userId?: any
 ) {
-  const res = await firestore.collection("planner").doc(id).delete();
+  const res = await firestore.collection('planner').doc(id).delete();
 
   if (updateOrderOfRemainingRecipes) {
     // Get recipes that are higher than this order on the same day
@@ -172,17 +164,13 @@ export async function removeRecipeFromPlanner(
 }
 
 export async function updatePlannerRecipe(id, update) {
-  await firestore.collection("planner").doc(id).update(update);
+  await firestore.collection('planner').doc(id).update(update);
 }
 
-export async function getNumberOfRecipesOnDate(
-  date,
-  collaborativePlannerId,
-  userId
-) {
-  console.log("Date", date);
-  console.log("collaborativePlannerId", collaborativePlannerId);
-  console.log("userId", userId);
+export async function getNumberOfRecipesOnDate(date, collaborativePlannerId, userId) {
+  console.log('Date', date);
+  console.log('collaborativePlannerId', collaborativePlannerId);
+  console.log('userId', userId);
   const startToday = new Date(date);
   const endToday = new Date(date);
   // Set up start date
@@ -194,36 +182,31 @@ export async function getNumberOfRecipesOnDate(
   endToday.setMinutes(59);
   endToday.setSeconds(59);
 
-  const plannerRef = firestore.collection("planner");
+  const plannerRef = firestore.collection('planner');
 
   let query: any = plannerRef;
 
-  console.log("Start", startToday);
-  console.log("End", endToday);
+  console.log('Start', startToday);
+  console.log('End', endToday);
 
-  query = query.where("date", ">=", startToday).where("date", "<=", endToday);
+  query = query.where('date', '>=', startToday).where('date', '<=', endToday);
   // .orderBy("date", "asc");
 
   if (collaborativePlannerId) {
-    query = query.where("plannerId", "==", collaborativePlannerId);
+    query = query.where('plannerId', '==', collaborativePlannerId);
   } else {
-    console.log("Created query");
-    query = query.where("createdBy", "==", userId);
+    console.log('Created query');
+    query = query.where('createdBy', '==', userId);
   }
 
   const res = await query.get();
-  console.log("Res", res);
+  console.log('Res', res);
 
   return res.docs.length;
 }
 
 // Reorder any recipes that are higher than the recipe we are deleting
-export async function getRecipesToReorderOnDate(
-  date,
-  collaborativePlannerId,
-  userId,
-  order
-) {
+export async function getRecipesToReorderOnDate(date, collaborativePlannerId, userId, order) {
   const startToday = date;
   const endToday = date;
   // Set up start date
@@ -235,23 +218,23 @@ export async function getRecipesToReorderOnDate(
   endToday.setMinutes(59);
   endToday.setSeconds(59);
 
-  const plannerRef = firestore.collection("planner");
+  const plannerRef = firestore.collection('planner');
 
   let query: any = plannerRef;
 
   query = query
-    .where("date", ">=", startToday)
-    .where("date", "<=", endToday)
-    .orderBy("date", "asc");
+    .where('date', '>=', startToday)
+    .where('date', '<=', endToday)
+    .orderBy('date', 'asc');
 
   if (collaborativePlannerId) {
-    query = query.where("plannerId", "==", collaborativePlannerId);
+    query = query.where('plannerId', '==', collaborativePlannerId);
   } else {
-    query = query.where("createdBy", "==", userId);
+    query = query.where('createdBy', '==', userId);
   }
 
   const res = await query.get();
-  let recipes = [];
+  const recipes = [];
   for (const doc of res.docs) {
     const data = doc.data();
 
@@ -259,4 +242,36 @@ export async function getRecipesToReorderOnDate(
   }
 
   return recipes;
+}
+
+export async function updateOrderOfRecipesInVisiblePlanner(visibleWeek) {
+  console.log('Inside');
+  const promises = [];
+
+  Object.keys(visibleWeek).forEach((key) => {
+    // console.log(key, visibleWeek[key]);
+    visibleWeek[key].recipes.forEach((recipe, index) => {
+      console.log(`Index ${index}: ${recipe.title}`);
+      console.log('Recipe', recipe);
+      const promise = firestore.collection('planner').doc(recipe.plannerData.id).update({
+        order: index,
+        date: visibleWeek[key].date,
+      });
+      promises.push(promise);
+    });
+  });
+
+  try {
+    await Promise.all(promises).then(async (values) => {
+      console.log('Values', values);
+    });
+  } catch (e) {
+    console.log('Errors with promise all', e);
+  }
+
+  // Object.entries(visibleWeek).forEach((key) => {
+  //   visibleWeek[key].recipes.forEach((recipe, index) => {
+  //     console.log(`Index ${index}: ${recipe.title}`);
+  //   });
+  // });
 }

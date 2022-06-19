@@ -121,6 +121,7 @@ export interface Collection {
   id: string;
   userId: string;
   image?: string;
+  entity?: Entity;
 }
 
 export interface Snapshot {
@@ -351,3 +352,6 @@ export interface RecipeStatus {
     sharedPlanned: boolean;
   };
 }
+
+// React DnD
+export const ITEM_TYPES = { PLANNER_RECIPE: 'PLANNER_RECIPE' };

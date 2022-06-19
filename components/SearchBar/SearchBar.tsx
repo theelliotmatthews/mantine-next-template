@@ -13,16 +13,17 @@ interface SearchBarProps {
     // filters: any[];
     hideAdvancedByDefault?: boolean;
     recipeCreatorId?: string;
-    creatorType?: string;
+    creatorType: string;
     userRecipeType?: string;
     slideover?: boolean;
     chooseRecipe?: boolean;
     collectionId?: string;
-    buttonText?: string
+    buttonText?: string;
+    userRecipeSearch?: boolean;
 }
 
 export default function SearchBar(props: SearchBarProps) {
-    const { placeholder, hideAdvancedByDefault, recipeCreatorId, creatorType, userRecipeType, slideover, chooseRecipe, collectionId, buttonText } = props;
+    const { placeholder, hideAdvancedByDefault, recipeCreatorId, creatorType, userRecipeType, slideover, chooseRecipe, collectionId, buttonText, userRecipeSearch } = props;
 
     const [results, setResults] = useState<Recipe[]>([]);
     const [startAt, setStartAt] = useState(null);
@@ -41,14 +42,7 @@ export default function SearchBar(props: SearchBarProps) {
 
     const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
 
-    useEffect(() => {
-        const getData = async () => {
-            const data = await loadIngredientFile(true);
-            setIngredients(data);
-        };
 
-        getData();
-    }, []);
 
     const theme = useMantineTheme();
 
@@ -69,7 +63,7 @@ export default function SearchBar(props: SearchBarProps) {
 
         // Call searchRecipes function
         /* eslint-disable-next-line */
-        const result = await searchRecipes(query, selectedIngredients, limit, null, '', macros, avoidances, activeFilters, '', recipeCreatorId ? recipeCreatorId : '', userRecipeType ? userRecipeType : '', [], collectionId ? collectionId : '') as Results
+        const result = await searchRecipes(query, selectedIngredients, limit, null, '', macros, avoidances, activeFilters, creatorType, recipeCreatorId ? recipeCreatorId : '', userRecipeType ? userRecipeType : '', [], collectionId ? collectionId : '') as Results
 
         // Set results and start at
         setResults(result.results);
@@ -101,27 +95,41 @@ export default function SearchBar(props: SearchBarProps) {
         setShowLoadMore(result.results.length === limit);
     };
 
+    useEffect(() => {
+        const getData = async () => {
+            const data = await loadIngredientFile(true);
+            setIngredients(data);
+        };
+
+        getData();
+
+        if (userRecipeSearch) {
+            search();
+        }
+    }, []);
+
     return (
         <>
-            <Container size="md" py="xs">
-                <Group direction="column" grow spacing="xs">
-                    <TextInput
-                        icon={<Search size={18} />}
-                        radius="xl"
-                        size="md"
-                        rightSection={
-                            <ActionIcon size={32} radius="xl" color={theme.primaryColor} variant="filled" onClick={search}>
-                                {theme.dir === 'ltr' ? <ArrowRight size={18} /> : <ArrowLeft size={18} />}
-                            </ActionIcon>
-                        }
-                        placeholder="Search recipes"
-                        rightSectionWidth={42}
-                        value={query}
-                        onChange={(event) => setQuery(event.currentTarget.value)}
-                        onKeyPress={(event) => {
-                            event.key === 'Enter' && search();
-                        }}
-                    />
+
+            <Group direction="column" grow spacing="xs">
+                <TextInput
+                    icon={<Search size={18} />}
+                    radius="xl"
+                    size="md"
+                    rightSection={
+                        <ActionIcon size={32} radius="xl" color={theme.primaryColor} variant="filled" onClick={search}>
+                            {theme.dir === 'ltr' ? <ArrowRight size={18} /> : <ArrowLeft size={18} />}
+                        </ActionIcon>
+                    }
+                    placeholder="Search recipes"
+                    rightSectionWidth={42}
+                    value={query}
+                    onChange={(event) => setQuery(event.currentTarget.value)}
+                    onKeyPress={(event) => {
+                        event.key === 'Enter' && search();
+                    }}
+                />
+                {!userRecipeSearch ?
                     <MultiSelect
                         placeholder="Add ingredients"
                         searchable
@@ -139,34 +147,33 @@ export default function SearchBar(props: SearchBarProps) {
                             defaultValueRemove: { backgroundColor: theme.colors[theme.primaryColor][5], color: 'white', borderRadius: '32px' },
                         }}
                     />
-                </Group>
+                    : null}
+            </Group>
 
-                <Group>
-                    {selectedIngredients.map((ingredient => <p>{ingredient}</p>
-                    ))}
-                </Group>
+            <Group>
+                {selectedIngredients.map((ingredient => <p>{ingredient}</p>
+                ))}
+            </Group>
 
-                {loading ?
-                    <Center py="xl">
-                        <Loader />
-                    </Center>
-                    :
-                    <RecipesContainer recipes={results} />
-                }
+            {loading ?
+                <Center py="xl">
+                    <Loader />
+                </Center>
+                :
+                <RecipesContainer recipes={results} />
+            }
 
-                {showLoadMore &&
-                    <Center py="xl">
-                        <Button onClick={loadMore}>Load more</Button>
-                    </Center>
-                }
+            {showLoadMore &&
+                <Center py="xl">
+                    <Button onClick={loadMore}>Load more</Button>
+                </Center>
+            }
 
-                {loadingMore &&
-                    <Center py="xl">
-                        <Loader />
-                    </Center>
-                }
-
-            </Container>
+            {loadingMore &&
+                <Center py="xl">
+                    <Loader />
+                </Center>
+            }
 
         </>
     );

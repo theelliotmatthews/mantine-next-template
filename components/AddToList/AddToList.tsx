@@ -1,9 +1,9 @@
 import { useEffect, useContext, useState } from 'react';
 import { createStyles, Stack } from '@mantine/core';
-import { firestorePromiseAdd } from '../../lib/ingredients/ingredients';
-import { UserContext } from '../../lib/context';
+import ListRecipe from '../ListRecipe/ListRecipe';
 import { Recipe } from '../../lib/types';
-import { ListRecipe } from '../ListRecipe/ListRecipe';
+import { UserContext } from '../../lib/context';
+import { firestorePromiseAdd } from '../../lib/ingredients/ingredients';
 
 const useStyles = createStyles(() => ({
     modal: {

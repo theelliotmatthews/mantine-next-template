@@ -159,9 +159,16 @@ export async function searchRecipes(
   if (creatorType && recipeCreatorId && userRecipeType) {
     // Created recipes
     if (userRecipeType === 'created') {
-      query = query.where('entity.id', '==', recipeCreatorId);
-      query = query.where('entity.type', '==', creatorType);
-      if (searchTerm.length === 0) query = query.orderBy('createdAt', 'desc');
+      console.log('Yes created');
+
+      // New data structures
+      // query = query.where('entity.id', '==', recipeCreatorId);
+      // query = query.where('entity.type', '==', creatorType);
+
+      // Old data structures
+      query = query.where('channel', '==', recipeCreatorId);
+
+      // if (searchTerm.length === 0) query = query.orderBy('createdAt', 'desc');
       // console.log('Yes here with entities');
       // Reviewed recipes
     } else if (userRecipeType === 'reviewed') {
@@ -177,7 +184,7 @@ export async function searchRecipes(
 
       if (searchTerm.length === 0) {
         query = query.orderBy('added', 'desc');
-        // console.log('Order by added');
+        console.log('Order by added');
       }
     }
   } else if (collectionId) {

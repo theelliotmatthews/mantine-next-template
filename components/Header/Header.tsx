@@ -120,7 +120,7 @@ export default function HeaderSimple({ links }: HeaderSimpleProps) {
 
     return (
         <Header height={60} className={classes.nav}>
-            <Container className={classes.header}>
+            <Container size="xl" className={classes.header}>
                 <PlantFoodLogo className={classes.logo} />
                 <Group spacing={5} className={classes.links}>
                     {items}
