@@ -38,6 +38,7 @@ interface StatsSegmentsProps {
         count: string;
         part: number;
         color: string;
+        unit: string;
     }[];
 }
 
@@ -54,12 +55,12 @@ export function StatsSegments({ total, diff, data }: StatsSegmentsProps) {
 
     const descriptions = data.map((stat) => (
         <Box key={stat.label} className={classes.stat}>
-            <Text transform="uppercase" size="xs" color="dimmed" weight={700}>
+            <Text transform="capitalize" size="xs" color="dimmed" weight={700}>
                 {stat.label}
             </Text>
 
             <Group position="apart" align="flex-end" spacing={0}>
-                <Text weight={700}>{stat.count}</Text>
+                <Text weight={700} size="sm">{stat.count}{stat.unit}</Text>
                 {/* <Text color={stat.color} weight={700} size="sm" className={classes.statCount}>
                     {stat.part}g
                 </Text> */}
@@ -68,33 +69,11 @@ export function StatsSegments({ total, diff, data }: StatsSegmentsProps) {
     ));
 
     return (
-        <Paper withBorder p="md" radius="md">
-            {/* <Group position="apart">
-                <Group align="flex-end" spacing="xs">
-                    <Text size="xl" weight={700}>
-                        {total}
-                    </Text>
-                    <Text color="teal" className={classes.diff} size="sm" weight={700}>
-                        <span>{diff}%</span>
-                        <ArrowUpRight size={16} style={{ marginBottom: 4 }} />
-                    </Text>
-                </Group>
-                <DeviceAnalytics size={20} className={classes.icon} />
-            </Group> */}
 
-            {/* <Text color="dimmed" size="sm">
-                Page views compared to previous month
-            </Text> */}
 
-            {/* <Progress
-                sections={segments}
-                size={34}
-                classNames={{ label: classes.progressLabel }}
-                mt={40}
-            /> */}
-            <SimpleGrid cols={4} breakpoints={[{ maxWidth: 'xs', cols: 1 }]} mt="xl">
-                {descriptions}
-            </SimpleGrid>
-        </Paper>
+        <SimpleGrid cols={4} breakpoints={[{ maxWidth: 'xs', cols: 1 }]}>
+            {descriptions}
+        </SimpleGrid>
+
     );
 }

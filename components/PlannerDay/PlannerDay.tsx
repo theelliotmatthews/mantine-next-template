@@ -1,12 +1,25 @@
-import { Button, Stack } from '@mantine/core';
+import { Button, Group, Stack, Badge, Menu, Divider, ScrollArea, LoadingOverlay } from '@mantine/core';
+import { useModals } from '@mantine/modals';
+import { showNotification } from '@mantine/notifications';
+import { isToday } from 'date-fns';
+import { useRouter } from 'next/router';
 import { useEffect, useContext, useState, Key } from 'react';
 import { DragDropContext, Draggable, Droppable } from 'react-beautiful-dnd';
 import { useDrop } from 'react-dnd';
+import { Notes, Soup, Trash } from 'tabler-icons-react';
+
 import { UserContext } from '../../lib/context';
+import { firestore } from '../../lib/firebase';
+import { formatDate } from '../../lib/formatting';
+import { firestorePromiseAdd } from '../../lib/ingredients/ingredients';
+import { getNumberOfRecipesOnDate } from '../../lib/planner/planner';
 import { ITEM_TYPES, Recipe } from '../../lib/types';
+import AddToList, { AddToListItemProps } from '../AddToList/AddToList';
+import AddToListButton from '../AddToListButton/AddToListButton';
 import DropWrapper from '../DropWrapper/DropWrapper';
 import Micronutrients, { NutrientStats } from '../NutrientStats/NutrientStats';
 import RecipeCard from '../RecipeCard/RecipeCard';
+import UserRecipes from '../UserRecipes/UserRecipes';
 
 interface PlannerDayProps {
     recipes: any[];
@@ -25,94 +38,108 @@ interface PlannerDayProps {
     };
     moveItem: Function;
     columnId: string;
+    getPlanners?: Function;
 }
 
 export function PlannerDay(props: PlannerDayProps) {
-    const { recipes, removeFromPlanner, date, changeDateOfRecipeInPlanner, reorderRecipeInPlanner, adjustServings, servingsChanged, collaborative, collaborativePlannerId, visibleWeek, moveItem, columnId } = props;
+    const { recipes, removeFromPlanner, date, changeDateOfRecipeInPlanner, reorderRecipeInPlanner, adjustServings, servingsChanged, collaborative, collaborativePlannerId, visibleWeek, moveItem, columnId, getPlanners } = props;
     const { user } = useContext(UserContext);
+    const modals = useModals();
 
-    const [showMicronutrients, setShowMicronutrients] = useState(false);
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         console.log('Servings changed? ');
     }, [servingsChanged]);
 
-    const addRecipeToThisDay = async () => {
 
+    const addRecipeToPlanner = (id: string, date: Date) => {
+        console.log(`Adding to planner with id ${id} on date ${date}`);
     };
 
-    const addRecipeToPlanner = async () => {
-        console.log('Adding recipe to planner from slideout');
-        console.log('User', user.uid);
-        console.log(collaborative ? collaborativePlannerId : user.uid);
+    const [selectedRecipes, setSelectedRecipes] = useState<string[]>([]);
+
+    const selectRecipe = async (recipe: Recipe) => {
+        console.log(`Recipe selected: ${recipe.id} for day ${date}`);
+        // if (selectedRecipes.includes(id)) {
+        //     setSelectedRecipes(prevState => prevState.filter(recipe => recipe !== id));
+        // } else {
+        //     setSelectedRecipes(prevState => [...prevState, id]);
+        // }
+        const numberOfRecipesOnDate = await getNumberOfRecipesOnDate(date, collaborativePlannerId, user.uid);
+        const doc =
+            collaborativePlannerId ?
+                {
+                    addedBy: user.uid,
+                    meal: recipe,
+                    date,
+                    plannerId: collaborativePlannerId,
+                    collaborative: true,
+                    order: numberOfRecipesOnDate,
+                }
+                :
+                {
+                    addedBy: user.uid,
+                    createdBy: user.uid,
+                    meal: recipe,
+                    date,
+                    collaborative: false,
+                    order: numberOfRecipesOnDate,
+                };
+
+        setLoading(true);
+        await firestore.collection('planner').add(doc);
+        getPlanners && await getPlanners();
+        setLoading(false);
+
+        console.log('Doc', doc);
     };
 
-    const addDayToList = async () => {
-        console.log('Adding day to list');
+    const openRecipeSelectModal = () => {
+        const id = modals.openModal({
+            title: 'Add recipe to planner',
+            children: (
+                <>
+                    <div style={{ maxHeight: '70vh', overflowY: 'scroll', overflowX: 'hidden' }}>
+                        <UserRecipes
+                            addRecipeToPlanner={addRecipeToPlanner}
+                            recipeCreatorId={user.uid}
+                            hideCollections
+                            selectMode
+                            selectRecipe={(recipeId: string) => {
+                                selectRecipe(recipeId);
+                                modals.closeModal(recipeId);
+                            }
+                            }
+                            selectedRecipes={selectedRecipes}
+                        />
+                    </div>
+                    <Group position="right">
+                        <Button onClick={() => modals.closeModal(id)} mt="md" variant="outline" color="gray">
+                            Cancel
+                        </Button>
+                        {selectedRecipes.length > 0 ?
+                            <Button onClick={() => modals.closeModal(id)} mt="md">
+                                Submit
+                            </Button> : null}
+                    </Group>
+                </>
+            ),
+            // labels: { confirm: , cancel: 'Cancel' },
+            // onConfirm: () => {
+            //     console.log('CONFIRM INGREDIENTS TO ADD', ingredientsToAdd);
+            //     // addToList();
+            //     setListModalIncrement(listModalIncrement + 1);
+            // },
+            size: '80vw',
+        });
     };
 
-    const toggleMicronutrients = async () => {
-        console.log('Showing micronutrients');
-        setShowMicronutrients(!showMicronutrients);
-    };
 
-    const buttons = [
-        {
-            type: 'add',
-            action: addRecipeToPlanner,
-            icon: 'plus',
-            text: 'Add recipe',
-        },
-        {
-            type: 'list',
-            action: addDayToList,
-            icon: 'list',
-            text: 'Add to list',
-        },
-        {
-            type: 'micronutrients',
-            action: toggleMicronutrients,
-            icon: 'barGraph',
-            text: 'Micronutrients',
-        },
-    ];
-
-    // Planner drag and drop functionality
-    const [items, setItems] = useState();
-
-    useEffect(() => {
-        setItems(recipes);
-        // console.log('ITEMS', recipes);
-    }, [recipes]);
-
-    // const onDrop = (item, monitor, status) => {
-    //     // const mapping = statuses.find(si => si.status === status);
-    //     console.log('Dropping item', item)
-    //     console.log('Current items', items)
-    //     setItems(prevState => {
-    //         const newItems = prevState
-    //             .filter(i => i.id !== item.id)
-    //             .concat({
-    //                 ...item,
-    //                 // status, icon: mapping.icon
-    //             });
-    //         return [...newItems];
-    //     });
-    // };
-
-    // const moveItem = (dragIndex, hoverIndex) => {
-    //     console.log(`Moving item with dragIndex ${dragIndex} to hoverIndex ${hoverIndex}`)
-
-    //     const item = items[dragIndex];
-    //     setItems(prevState => {
-    //         const newItems = prevState.filter((i, idx) => idx !== dragIndex);
-    //         newItems.splice(hoverIndex, 0, item);
-    //         return [...newItems];
-    //     });
-    // };
 
     return (
-        <div>
+        <div style={{ position: 'relative' }}>
+            <LoadingOverlay visible={loading} color="#F8F9FA" />
             {/* {recipes.length > 0 && <Macros recipes={recipes} />} */}
 
             {/* <div className="flex space-x-1">
@@ -123,7 +150,31 @@ export function PlannerDay(props: PlannerDayProps) {
                 ))}
             </div> */}
 
-            {<NutrientStats recipes={recipes} />}
+            <Group mb={8} position="apart">
+                <Group>
+                    <div>{formatDate(date, 2)}</div>
+                    {isToday(date) ?
+                        <Badge size="xs">Today</Badge>
+                        : null}
+                </Group>
+                <Menu>
+                    {/* <Menu.Label>Application</Menu.Label> */}
+                    <Menu.Item icon={<Soup size={14} />} onClick={() => openRecipeSelectModal()}>Add recipe</Menu.Item>
+                    {/* {recipes.length > 0 ? <Menu.Item icon={<Notes size={14} />} onClick={() => addToListModal()}>Add to list</Menu.Item> : null} */}
+                    {recipes.length > 0 ?
+                        <AddToListButton recipes={recipes}>
+                            <Menu.Item icon={<Notes size={14} />}>Add to list</Menu.Item>
+                        </AddToListButton>
+                        : null}
+                    <Divider />
+
+                    {/* <Menu.Label>Danger zone</Menu.Label> */}
+                    {/* <Menu.Item icon={<ArrowsLeftRight size={14} />}>Transfer my data</Menu.Item> */}
+                    <Menu.Item color="red" icon={<Trash size={14} />}>Clear day</Menu.Item>
+                </Menu>
+            </Group>
+
+            {recipes.length > 0 ? <NutrientStats recipes={recipes} /> : null}
             {/* <NutrientStats */}
             {/* <DropWrapper onDrop={onDrop} visibleWeek={visibleWeek}> */}
             <Droppable droppableId={columnId} key={columnId}>
@@ -141,7 +192,7 @@ export function PlannerDay(props: PlannerDayProps) {
                             minHeight: 120,
                         }}
                     >
-                        <Stack>
+                        <Stack mt={8}>
                             {recipes.map((item, index) => (
                                 <Draggable
                                     key={item.id}

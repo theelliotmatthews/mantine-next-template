@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { TextInput, ActionIcon, useMantineTheme, Group, Container, MultiSelect, Loader, Center, Button } from '@mantine/core';
+import { TextInput, ActionIcon, useMantineTheme, Group, Container, MultiSelect, Loader, Center, Button, Stack } from '@mantine/core';
 import { Search, ArrowRight, ArrowLeft } from 'tabler-icons-react';
 import { searchRecipes } from '../../lib/search/recipe-search';
 import { loadIngredientFile } from '../../lib/search/ingredient-search';
@@ -20,10 +20,13 @@ interface SearchBarProps {
     collectionId?: string;
     buttonText?: string;
     userRecipeSearch?: boolean;
+    selectMode?: boolean;
+    selectedRecipes?: string[];
+    selectRecipe?: Function;
 }
 
 export default function SearchBar(props: SearchBarProps) {
-    const { placeholder, hideAdvancedByDefault, recipeCreatorId, creatorType, userRecipeType, slideover, chooseRecipe, collectionId, buttonText, userRecipeSearch } = props;
+    const { placeholder, hideAdvancedByDefault, recipeCreatorId, creatorType, userRecipeType, slideover, chooseRecipe, collectionId, buttonText, userRecipeSearch, selectMode, selectedRecipes, selectRecipe } = props;
 
     const [results, setResults] = useState<Recipe[]>([]);
     const [startAt, setStartAt] = useState(null);
@@ -111,7 +114,7 @@ export default function SearchBar(props: SearchBarProps) {
     return (
         <>
 
-            <Group direction="column" grow spacing="xs">
+            <Stack mb={8}>
                 <TextInput
                     icon={<Search size={18} />}
                     radius="xl"
@@ -148,7 +151,7 @@ export default function SearchBar(props: SearchBarProps) {
                         }}
                     />
                     : null}
-            </Group>
+            </Stack>
 
             <Group>
                 {selectedIngredients.map((ingredient => <p>{ingredient}</p>
@@ -160,7 +163,9 @@ export default function SearchBar(props: SearchBarProps) {
                     <Loader />
                 </Center>
                 :
-                <RecipesContainer recipes={results} />
+                <RecipesContainer recipes={results} selectMode={selectMode} selectRecipe={selectRecipe}
+                    selectedRecipes={selectedRecipes}
+                />
             }
 
             {showLoadMore &&

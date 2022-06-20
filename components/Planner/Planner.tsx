@@ -379,12 +379,6 @@ export default function Planner(props: PlannerProps) {
                     {Object.entries(visibleWeek).map(([columnId, day], index) => (
                         <Grid.Col xs={12} sm={6} md={4} lg={3}>
                             <Stack key={index}>
-                                <Group>
-                                    <div>{formatDate(day.date, 2)}</div>
-                                    {isToday(day.date) ?
-                                        <Badge size="xs">Today</Badge>
-                                        : null}
-                                </Group>
 
                                 <PlannerDay
                                     recipes={day.recipes}
@@ -398,7 +392,7 @@ export default function Planner(props: PlannerProps) {
                                     collaborative={collaborative}
                                     visibleWeek={visibleWeek}
                                     columnId={day.id}
-
+                                    getPlanners={getPlanners}
                                 />
 
                             </Stack>

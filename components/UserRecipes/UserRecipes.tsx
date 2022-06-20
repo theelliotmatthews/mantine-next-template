@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Tabs, useMantineTheme } from '@mantine/core';
 import { Bookmark, Eye, Folders, Soup, Star, UserPlus } from 'tabler-icons-react';
 import SearchBar from '../SearchBar/SearchBar';
@@ -10,19 +10,23 @@ interface UserRecipesProps {
     creatorType?: 'user' | 'page' | 'venue'
     slideover?: boolean;
     chooseRecipe?: boolean;
-    showCollections?: boolean;
+    hideCollections?: boolean;
     collectionId?: string;
     hideTabs?: boolean;
     buttonText?: string;
+    addRecipeToPlanner?: Function;
+    selectMode?: boolean;
+    selectedRecipes?: string[];
+    selectRecipe?: Function;
 }
 
 export default function UserRecipes(props: UserRecipesProps) {
-    const { type, recipeCreatorId, creatorType, slideover, chooseRecipe, showCollections, collectionId, hideTabs, buttonText } = props;
+    const { type, recipeCreatorId, creatorType, slideover, chooseRecipe, hideCollections, collectionId, hideTabs, buttonText, addRecipeToPlanner, selectMode, selectedRecipes, selectRecipe } = props;
     const theme = useMantineTheme();
 
     const [activeTab, setActiveTab] = useState(1);
 
-    const userRecipeTypes = [
+    const [userRecipeTypes, setUserRecipeTypes] = useState([
         {
             name: 'saved',
             href: '/my-recipes/saved',
@@ -48,12 +52,18 @@ export default function UserRecipes(props: UserRecipesProps) {
             href: '/my-recipes/created',
             icon: <UserPlus size={16} />,
         },
-        {
-            name: 'collections',
-            href: '/my-recipes/collections',
-            icon: <Folders size={16} />,
-        },
-    ];
+
+    ]);
+
+    useEffect(() => {
+        if (!hideCollections) {
+            setUserRecipeTypes([...userRecipeTypes, {
+                name: 'collections',
+                href: '/my-recipes/collections',
+                icon: <Folders size={16} />,
+            }]);
+        }
+    }, [hideCollections]);
 
     return (
         <div>
@@ -67,6 +77,9 @@ export default function UserRecipes(props: UserRecipesProps) {
                                 recipeCreatorId={recipeCreatorId}
                                 userRecipeType={recipeType.name}
                                 creatorType="user"
+                                selectMode={selectMode}
+                                selectRecipe={selectRecipe}
+                                selectedRecipes={selectedRecipes}
                             /> : <Collections userId={recipeCreatorId} />
                         }
                     </Tabs.Tab>

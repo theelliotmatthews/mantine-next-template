@@ -35,6 +35,7 @@ import { checkRecipeStatus, toggleRecipeStatus } from '../../lib/recipes/recipes
 import { AddToPlanner } from '../AddToPlanner/AddToPlanner';
 import { AddToListItemProps, AddToList } from '../AddToList/AddToList';
 import { getNumberOfRecipesOnDate, removeRecipeFromPlanner } from '../../lib/planner/planner';
+import AddToListButton from '../AddToListButton/AddToListButton';
 
 const useStyles = createStyles((theme) => ({
     card: {
@@ -82,6 +83,9 @@ interface RecipeCardProps {
     status?: any;
     item?: Recipe;
     plannerDay?: Date
+    selectMode?: boolean;
+    selectedRecipes?: string[];
+    selectRecipe?: Function;
 }
 
 interface RecipesToAddToPlanner {
@@ -99,7 +103,10 @@ export default function RecipeCard({
     index,
     moveItem,
     item,
-    plannerDay
+    plannerDay,
+    selectMode,
+    selectedRecipes,
+    selectRecipe
 }: RecipeCardProps & Omit<React.ComponentPropsWithoutRef<'div'>, keyof RecipeCardProps>) {
     const { classes, cx } = useStyles();
     const theme = useMantineTheme();
@@ -153,61 +160,6 @@ export default function RecipeCard({
 
     const toggleCooked = async () => {
         setCooked(!cooked);
-    };
-
-    const addToList = async () => {
-        console.log('Adding to list', ingredientsToAdd);
-
-        //Construct a clean list of ingredients
-        const ingredients: AddToListItemProps[] = [];
-
-        ingredientsToAdd.forEach((i: AddToListItemProps) => {
-            if (i.checked) {
-                const document = {
-                    checked: false,
-                    ingredient: i.ingredient,
-                    quantity: i.quantity,
-                    unit: i.unit,
-                    listId: user.uid,
-                    recipe: i.recipe,
-                };
-                console.log('Doc', document);
-                ingredients.push(document);
-            }
-        });
-
-        console.log('Ingredients to add to final list:', ingredients);
-        ingredients.forEach(i => {
-            console.log(`${i.quantity} ${i.unit} ${i.ingredient}`);
-        });
-        await firestorePromiseAdd('list_items', ingredients);
-
-        showNotification({
-            title: 'Added to list',
-            message: 'Click here to view your list',
-            onClick: () => {
-                router.push('/list');
-            },
-            icon: <Notes size={12} />,
-            style: { cursor: 'pointer' },
-        });
-    };
-
-    const addToListModal = () => {
-        modals.openConfirmModal({
-            title: 'Add to list',
-            children: (
-                <>
-                    <AddToList recipes={[recipe]} updateIngredientsProp={setIngredientsToAdd} />
-                </>
-            ),
-            labels: { confirm: 'Add to list', cancel: 'Cancel' },
-            onConfirm: () => {
-                console.log('CONFIRM INGREDIENTS TO ADD', ingredientsToAdd);
-                // addToList();
-                setListModalIncrement(listModalIncrement + 1);
-            },
-        });
     };
 
     const addRecipesToPlanner = async () => {
@@ -326,10 +278,6 @@ export default function RecipeCard({
     };
 
     useEffect(() => {
-        if (listModalIncrement > 0) addToList();
-    }, [listModalIncrement]);
-
-    useEffect(() => {
         if (plannerModalIncrement > 0) addRecipesToPlanner();
     }, [plannerModalIncrement]);
 
@@ -380,8 +328,9 @@ export default function RecipeCard({
 
                                     <Menu position="left">
                                         {/* <Menu.Label>Application</Menu.Label> */}
-                                        <Menu.Item icon={<Notes size={14} />}>Add to list</Menu.Item>
-
+                                        <AddToListButton recipes={[recipe]}>
+                                            <Menu.Item icon={<Notes size={14} />}>Add to list</Menu.Item>
+                                        </AddToListButton>
                                         {/* <Menu.Item
                                             icon={<Search size={14} />}
                                             rightSection={<Text size="xs" color="dimmed">⌘K</Text>}
@@ -404,11 +353,15 @@ export default function RecipeCard({
                 :
                 <Card withBorder radius="md" className={cx(classes.card, className)}>
                     <Card.Section>
-                        <Link href={`/recipes/${recipe.id}`} passHref>
-                            <a>
-                                <Image src={recipe.image} height={180} />
-                            </a>
-                        </Link>
+                        {selectMode ?
+                            <Image src={recipe.image} height={180} onClick={() => { selectRecipe && selectRecipe(recipe); }} />
+                            : (
+                                <Link href={`/recipes/${recipe.id}`} passHref>
+                                    <a>
+                                        <Image src={recipe.image} height={180} />
+                                    </a>
+                                </Link>)
+                        }
                     </Card.Section>
 
                     <Badge className={classes.rating} variant="gradient" gradient={{ from: theme.colors[theme.primaryColor][4], to: theme.colors[theme.primaryColor][6] }}>
@@ -482,12 +435,13 @@ export default function RecipeCard({
                                 </ActionIcon>
                             </Tooltip>
                             <Tooltip label="Add to list">
-                                <ActionIcon
-                                    onClick={addToListModal}
-                                    className={classes.action}
-                                >
-                                    <Notes size={16} />
-                                </ActionIcon>
+                                <AddToListButton recipes={[recipe]}>
+                                    <ActionIcon
+                                        className={classes.action}
+                                    >
+                                        <Notes size={16} />
+                                    </ActionIcon>
+                                </AddToListButton>
                             </Tooltip>
                             <Tooltip label="Add to planner">
                                 <ActionIcon

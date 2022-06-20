@@ -1,9 +1,11 @@
 import { useEffect, useContext, useState } from 'react';
 
-import { createStyles, Progress, Box, Text, Group, Paper, SimpleGrid } from '@mantine/core';
-import { ArrowUpRight, DeviceAnalytics } from 'tabler-icons-react';
+import { createStyles, Progress, Box, Text, Group, Paper, SimpleGrid, Grid, Stack, Button } from '@mantine/core';
+import { ArrowUpRight, ChevronDown, ChevronUp, DeviceAnalytics } from 'tabler-icons-react';
 import { totalNutrients } from '../../lib/nutrients/nutrients';
 import { StatsSegments } from '../StatsSegment/StatsSegment';
+import { Nutrients } from '../../lib/types';
+
 
 const useStyles = createStyles((theme) => ({
     progressLabel: {
@@ -40,80 +42,78 @@ interface NutrientStatsProps {
 export function NutrientStats(props: NutrientStatsProps) {
     const { recipes } = props;
 
-    const [nutrients, setNutrients] = useState(null);
-    const { classes } = useStyles();
+    const [nutrients, setNutrients] = useState<Nutrients>();
     const [data, setData] = useState([]);
+    const [showMicroNutrients, setShowMicroNutrients] = useState<boolean>(false);
 
     useEffect(() => {
         if (recipes) {
-            const keys = ['calories', 'carbs', 'fat', 'protein']
+            const units = {
+                calories: { unit: 'kcal', oneDp: false },
+                carbs: { unit: 'g', oneDp: true },
+                fat: { unit: 'g', oneDp: true },
+                protein: { unit: 'g', oneDp: true },
+            };
             // console.log('Recipes', recipes)
-            const res = totalNutrients(recipes);
+            const res: Nutrients = totalNutrients(recipes);
             console.log('Nutrient res', res);
             setNutrients(res);
 
-            const dataStream = [];
+            const dataStream: ((prevState: never[]) => never[]) | { label: string; count: number; part: any; color: string; unit: any; }[] = [];
 
             Object.keys(res).forEach((key) => {
                 console.log(res[key]);
                 console.log('Key', key);
 
-                if (keys.includes(key)) {
-
+                if (units[key]) {
                     dataStream.push({
                         label: key,
-                        count: res[key],
+                        count: units[key].oneDp ? Math.round(res[key] * 10) / 10 : Math.ceil(res[key]),
                         part: res[key],
                         color: 'red',
+                        unit: units[key].unit,
                     });
                 }
             });
 
             setData(dataStream);
-            console.log('Data stream', dataStream)
+            console.log('Data stream', dataStream);
         }
     }, [recipes]);
-
-    const labels = [
-        {
-            label: 'calories',
-            unit: '',
-        },
-        {
-            label: 'carbs',
-            unit: 'g',
-        },
-        {
-            label: 'protein',
-            unit: 'g',
-        },
-        {
-            label: 'fat',
-            unit: 'g',
-        },
-    ];
 
     return (
         <>
             {nutrients &&
+                <Paper withBorder px="lg" py="md" radius="md">
+                    <Stack>
+                        <StatsSegments total="2000" diff={20} data={data} />
 
-                <StatsSegments total="2000" diff={20} data={data} />
-                // <div className="bg-white rounded-md p-8">
-                //     <h3 className="mb-4 text-lg font-semibold">Micronutrients</h3>
+                        <Button
+                            size="xs"
+                            variant="subtle"
+                            leftIcon={showMicroNutrients ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                            onClick={() => setShowMicroNutrients(!showMicroNutrients)}
+                        >
+                            Micronutrients
+                        </Button>
+                        {nutrients && showMicroNutrients ? (
+                            <Grid>
+                                {nutrients.microNutrients.map((nutrient, index) =>
+                                    <Grid.Col key={index} span={6}>
+                                        <Group position="apart">
+                                            <Text size="xs">{nutrient.info.label}</Text>
+                                            <Text size="xs">{nutrient.percentage}%</Text>
+                                        </Group>
+                                        <Progress value={nutrient.percentage} size="sm" radius="xl" />
+                                    </Grid.Col>
+                                    // return <MicronutrientScoreBar key={index} nutrient={nutrient} />
+                                )}
+                            </Grid>
+                        ) : null
+                        }
+                    </Stack>
 
-                //     <div className="grid grid-cols-2 md:grid-cols-4">
-                //         {labels.map((label, index) => <div key={index} className="bg-primary-light text-black text-center p-4">
-                //             <div>{nutrients[label.label]}{label.unit}</div>
-                //             <div>{label.label}</div>
-                //         </div>)}
-                //     </div>
-
-                //     {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-                //         {nutrients.microNutrients.map((nutrient, index) => {
-                //             return <MicronutrientScoreBar key={index} nutrient={nutrient} />
-                //         })}
-                //     </div> */}
-                // </div>
+                </Paper>
             }
         </>
 
