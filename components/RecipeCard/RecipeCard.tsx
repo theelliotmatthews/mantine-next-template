@@ -5,7 +5,7 @@
 /* eslint-disable no-restricted-syntax */
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { showNotification } from '@mantine/notifications';
-import { Bookmark, Calendar, CalendarEvent, Clock, Notes, Share, Soup, Trash, Users } from 'tabler-icons-react';
+import { Bookmark, Calendar, CalendarEvent, Clock, Copy, Notes, Share, Soup, Trash, Users } from 'tabler-icons-react';
 import {
     Card,
     Image,
@@ -27,7 +27,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { isSameDay } from 'date-fns';
 import { useDrag, useDrop } from 'react-dnd';
-import { ITEM_TYPE, ITEM_TYPES, Recipe } from '../../lib/types';
+import { CollaborativePlanner, ITEM_TYPE, ITEM_TYPES, PlannerRecipe, Recipe } from '../../lib/types';
 
 import { UserContext } from '../../lib/context';
 import { firestorePromiseAdd } from '../../lib/ingredients/ingredients';
@@ -36,6 +36,8 @@ import { AddToPlanner } from '../AddToPlanner/AddToPlanner';
 import { AddToListItemProps, AddToList } from '../AddToList/AddToList';
 import { getNumberOfRecipesOnDate, removeRecipeFromPlanner } from '../../lib/planner/planner';
 import AddToListButton from '../AddToListButton/AddToListButton';
+import AddToPlannerButton from '../AddToPlannerButton/AddToPlannerButton';
+import { firestore } from '../../lib/firebase';
 
 const useStyles = createStyles((theme) => ({
     card: {
@@ -86,14 +88,9 @@ interface RecipeCardProps {
     selectMode?: boolean;
     selectedRecipes?: string[];
     selectRecipe?: Function;
-}
-
-interface RecipesToAddToPlanner {
-    selectedDates: Date[];
-    addingToSharedPlanner: boolean;
-    selectedSharedPlanners: string[];
-    data: Recipe[];
-    switchDay: boolean;
+    removeFromPlanner?: Function;
+    getPlanners?: Function;
+    userCanEdit?: boolean
 }
 
 export default function RecipeCard({
@@ -106,7 +103,10 @@ export default function RecipeCard({
     plannerDay,
     selectMode,
     selectedRecipes,
-    selectRecipe
+    selectRecipe,
+    removeFromPlanner,
+    getPlanners,
+    userCanEdit
 }: RecipeCardProps & Omit<React.ComponentPropsWithoutRef<'div'>, keyof RecipeCardProps>) {
     const { classes, cx } = useStyles();
     const theme = useMantineTheme();
@@ -118,14 +118,6 @@ export default function RecipeCard({
     const [cooked, setCooked] = useState(false);
     const [ingredientsToAdd, setIngredientsToAdd] = useState([]);
     const [listModalIncrement, setListModalIncrement] = useState(0);
-    const [recipesToAddToPlanner, setRecipesToAddToPlanner] = useState<RecipesToAddToPlanner>({
-        selectedDates: [],
-        addingToSharedPlanner: false,
-        selectedSharedPlanners: [],
-        data: [],
-        switchDay: false,
-    });
-    const [plannerModalIncrement, setPlannerModalIncrement] = useState(0);
 
     // Check recipe status on load
     useEffect(() => {
@@ -141,16 +133,14 @@ export default function RecipeCard({
     }, []);
 
     const toggleSaveRecipe = async () => {
-        setSaved(!saved);
-
-        await toggleRecipeStatus('saved', user.uid, recipe);
-
-        if (!saved) {
+        const res = await toggleRecipeStatus('saved', user.uid, recipe);
+        setSaved(res);
+        if (res) {
             showNotification({
                 title: 'Recipe saved',
                 message: 'Click here to view your saved recipes',
                 onClick: () => {
-                    router.push('/my-recipes');
+                    router.push('/my-recipes/saved');
                 },
                 icon: <Bookmark size={12} />,
                 style: { cursor: 'pointer' },
@@ -159,132 +149,45 @@ export default function RecipeCard({
     };
 
     const toggleCooked = async () => {
-        setCooked(!cooked);
+        const res = await toggleRecipeStatus('cooked', user.uid, recipe);
+        setCooked(res);
+        if (res) {
+            showNotification({
+                title: 'Recipe cooked',
+                message: 'Click here to view your cooked recipes',
+                onClick: () => {
+                    router.push('/my-recipes/saved');
+                },
+                icon: <Bookmark size={12} />,
+                style: { cursor: 'pointer' },
+            });
+        }
     };
 
-    const addRecipesToPlanner = async () => {
-        console.log('Adding to planner with data: ', recipesToAddToPlanner.data);
+    const duplicateInPlanner = async () => {
+        const numberOfRecipesOnDate = await getNumberOfRecipesOnDate(recipe.plannerData.date, recipe.plannerData.collaborativePlannerId, user.uid);
 
-        // Store all docs to add in an array
-        const docs = [];
+        const doc: PlannerRecipe = {
+            addedBy: user.uid,
+            meal: recipe,
+            date: recipe.plannerData.date,
+            collaborative: recipe.plannerData.collaborative,
+            collaborativePlannerId: recipe.plannerData.collaborativePlannerId ? recipe.plannerData.collaborativePlannerId : null,
+            createdBy: user.uid,
+            order: numberOfRecipesOnDate,
+        };
 
-        let sameDaySameRecipe = null;
-
-        for (const date of recipesToAddToPlanner.selectedDates) {
-            // Adding to a planner normally
-            if (!recipesToAddToPlanner.switchDay) {
-                // console.log('Date were adding', date)
-                if (recipesToAddToPlanner.addingToSharedPlanner && (recipesToAddToPlanner.selectedSharedPlanners.length > 0)) {
-                    for (const planner of recipesToAddToPlanner.selectedSharedPlanners) {
-                        // Get number of recipes on this date
-                        const numberOfRecipesOnDate = await getNumberOfRecipesOnDate(date, planner, user.uid);
-
-                        for (let x = 0; x < recipesToAddToPlanner.data.length; x++) {
-                            const doc = {
-                                addedBy: user.uid,
-                                meal: recipesToAddToPlanner.data[x],
-                                date,
-                                plannerId: planner,
-                                collaborative: true,
-                                order: numberOfRecipesOnDate + x,
-                            };
-                            docs.push(doc);
-                        }
-                    }
-                } else {
-                    // Get number of recipes on this date
-                    const numberOfRecipesOnDate = await getNumberOfRecipesOnDate(date, null, user.uid);
-
-                    for (let x = 0; x < recipesToAddToPlanner.data.length; x++) {
-                        const doc = {
-                            addedBy: user.uid,
-                            meal: recipesToAddToPlanner.data[x],
-                            date,
-                            collaborative: false,
-                            createdBy: user.uid,
-                            order: numberOfRecipesOnDate + x,
-                        };
-                        docs.push(doc);
-                    }
-                }
-            } else {
-                // Updating an existing planner
-                if (isSameDay(date, recipesToAddToPlanner.data[0].plannerData.date)) sameDaySameRecipe = recipesToAddToPlanner.data[0];
-                else {
-                    // Get number of recipes on this date
-                    const numberOfRecipesOnDate = await getNumberOfRecipesOnDate(date, null, user.uid);
-
-                    for (let x = 0; x < recipesToAddToPlanner.data.length; x++) {
-                        const doc: {
-                            addedBy: string,
-                            meal: Recipe,
-                            date: Date,
-                            collaborative: boolean,
-                            order: number,
-                            plannerId?: string,
-                            createdBy?: string
-                        } = {
-                            addedBy: user.uid,
-                            meal: recipesToAddToPlanner.data[x],
-                            date,
-                            collaborative: !!recipesToAddToPlanner.data[x].plannerData.collaborativePlannerId,
-                            order: numberOfRecipesOnDate + x,
-                        };
-
-                        if (recipesToAddToPlanner.data[x].plannerData.collaborativePlannerId !== undefined) {
-                            doc.plannerId = recipesToAddToPlanner.data[x].plannerData.collaborativePlannerId;
-                        } else {
-                            doc.createdBy = user.uid;
-                        }
-                        docs.push(doc);
-                    }
-                }
-            }
+        if (recipe.plannerData.collaborativePlannerId) {
+            doc.plannerId = recipe.plannerData.collaborativePlannerId;
         }
 
-        if ((sameDaySameRecipe === null) && recipesToAddToPlanner.switchDay) {
-            await removeRecipeFromPlanner(recipesToAddToPlanner.data[0].plannerData.id, true, recipesToAddToPlanner.data, user.uid);
-        }
-
-        // console.log('Docs to add', docs)
-        await firestorePromiseAdd('planner', docs);
-
-        showNotification({
-            title: 'Added to planner',
-            message: 'Click here to view your planner',
-            onClick: () => {
-                router.push('/planner');
-            },
-            icon: <Calendar size={12} />,
-            style: { cursor: 'pointer' },
-        });
+        await firestore.collection('planner').add(doc);
+        getPlanners && getPlanners();
     };
-
-    const addToPlannerModal = () => {
-        modals.openConfirmModal({
-            title: 'Add to planner',
-            children: (
-                <>
-                    <AddToPlanner recipes={[recipe]} updatePlannerRecipes={setRecipesToAddToPlanner} />
-                </>
-            ),
-            labels: { confirm: 'Add to planner', cancel: 'Cancel' },
-            onConfirm: () => {
-                console.log('CONFIRM INGREDIENTS TO ADD', ingredientsToAdd);
-                // addToList();
-                setPlannerModalIncrement(plannerModalIncrement + 1);
-            },
-        });
-    };
-
-    useEffect(() => {
-        if (plannerModalIncrement > 0) addRecipesToPlanner();
-    }, [plannerModalIncrement]);
 
     return (
         <>
             {small && recipe ?
-
                 <Card withBorder radius="md">
                     <Card.Section>
                         <Group noWrap align="center" p={0} pr="xs">
@@ -331,17 +234,27 @@ export default function RecipeCard({
                                         <AddToListButton recipes={[recipe]}>
                                             <Menu.Item icon={<Notes size={14} />}>Add to list</Menu.Item>
                                         </AddToListButton>
+
+                                        {userCanEdit ? (
+                                            <AddToPlannerButton recipe={recipe} switchDay currentDate={recipe.plannerData.date} getPlanners={getPlanners}>
+                                                <Menu.Item icon={<Calendar size={14} />}>Switch day</Menu.Item>
+                                            </AddToPlannerButton>) : null}
+
+                                        {userCanEdit ? (<Menu.Item onClick={() => duplicateInPlanner()} icon={<Copy size={14} />}>Duplicate</Menu.Item>
+                                        ) : null}
+
                                         {/* <Menu.Item
                                             icon={<Search size={14} />}
                                             rightSection={<Text size="xs" color="dimmed">⌘K</Text>}
                                         >
                                             Search
                                         </Menu.Item> */}
-
-                                        <Divider />
-
-                                        <Menu.Label>Danger zone</Menu.Label>
-                                        <Menu.Item color="red" icon={<Trash size={14} />}>Remove from planner</Menu.Item>
+                                        {userCanEdit ? (
+                                            <>
+                                                <Divider />
+                                                <Menu.Label>Danger zone</Menu.Label>
+                                                <Menu.Item color="red" icon={<Trash size={14} />} onClick={() => removeFromPlanner && removeFromPlanner([recipe.plannerData.id])}>Remove from planner</Menu.Item>
+                                            </>) : null}
                                     </Menu>
                                 </Group>
                             </Stack>
@@ -444,12 +357,13 @@ export default function RecipeCard({
                                 </AddToListButton>
                             </Tooltip>
                             <Tooltip label="Add to planner">
-                                <ActionIcon
-                                    onClick={addToPlannerModal}
-                                    className={classes.action}
-                                >
-                                    <CalendarEvent size={16} />
-                                </ActionIcon>
+                                <AddToPlannerButton recipe={recipe}>
+                                    <ActionIcon
+                                        className={classes.action}
+                                    >
+                                        <CalendarEvent size={16} />
+                                    </ActionIcon>
+                                </AddToPlannerButton>
                             </Tooltip>
                             <Tooltip label="Share">
                                 <ActionIcon className={classes.action}>

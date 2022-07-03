@@ -1,7 +1,7 @@
 import { useModals } from '@mantine/modals';
 import { showNotification } from '@mantine/notifications';
 import { useRouter } from 'next/router';
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react';
 import { Notes } from 'tabler-icons-react';
 import { UserContext } from '../../lib/context';
 import { firestorePromiseAdd } from '../../lib/ingredients/ingredients';
@@ -14,7 +14,7 @@ interface AddToListButtonProps {
 }
 
 export default function AddToListButton(props: AddToListButtonProps) {
-    const { recipes, children } = props
+    const { recipes, children } = props;
 
     const router = useRouter();
     const { user } = useContext(UserContext);
@@ -70,8 +70,6 @@ export default function AddToListButton(props: AddToListButtonProps) {
             ),
             labels: { confirm: 'Add to list', cancel: 'Cancel' },
             onConfirm: () => {
-                console.log('CONFIRM INGREDIENTS TO ADD', ingredientsToAdd);
-                // addToList();
                 setListModalIncrement(listModalIncrement + 1);
             },
         });
@@ -84,10 +82,11 @@ export default function AddToListButton(props: AddToListButtonProps) {
     return (
         <div
             onClick={() => addToListModal()}
-            onKeyDown={(e) => console.log(e)}
+            onKeyDown={() => null}
             role="button"
             tabIndex={0}
+            style={{ display: 'inline', width: 'auto' }}
         >{children}
         </div>
-    )
+    );
 }

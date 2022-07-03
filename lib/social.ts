@@ -1,34 +1,29 @@
-import { auth, firestore } from "./firebase";
-import { getPage } from "./pages";
-import { Comment, Entity, Notification, Post, Profile } from "./types";
-import { getVenueById } from "./venues";
+import { auth, firestore } from './firebase';
+import { getPage } from './pages';
+import { Comment, Entity, Notification, Post, Profile } from './types';
+import { getVenueById } from './venues';
 
 export async function getPublicProfileForUser(id) {
-  let res = await firestore.collection("profiles").doc(id).get();
-  let data = res.data();
+  const res = await firestore.collection('profiles').doc(id).get();
+  const data = res.data();
 
   return { ...data, id: res.id } as Profile;
 }
 
-export async function fetchEntities(
-  type: string,
-  userId: string,
-  startAfter: any,
-  limit: number
-) {
+export async function fetchEntities(type: string, userId: string, startAfter: any, limit: number) {
   // // console.log("Fetching entities", type, userId);
 
   let results = {};
 
-  if (type === "friends") {
-    let friends = [];
-    let friendIds = [];
+  if (type === 'friends') {
+    const friends = [];
+    const friendIds = [];
 
     let query = firestore
-      .collection("friends")
-      .where("users", "array-contains", userId)
-      .where("accepted", "==", true)
-      .orderBy("createdAt", "desc");
+      .collection('friends')
+      .where('users', 'array-contains', userId)
+      .where('accepted', '==', true)
+      .orderBy('createdAt', 'desc');
 
     if (startAfter) {
       query = query.startAfter(startAfter);
@@ -38,18 +33,16 @@ export async function fetchEntities(
       query = query.limit(limit);
     }
 
-    let res = await query.get();
+    const res = await query.get();
     // Reset the last visible for a new pagination query
     let lastVisible = null;
     lastVisible = res.docs[res.docs.length - 1];
 
     for (const doc of res.docs) {
-      let data = doc.data();
+      const data = doc.data();
 
       //// console.log('Each friend data:', data)
-      let friendId = data.users.filter((id) => {
-        return id !== userId;
-      });
+      const friendId = data.users.filter((id) => id !== userId);
       friends.push(friendId[0]);
       friendIds.push(friendId[0]);
     }
@@ -64,13 +57,11 @@ export async function fetchEntities(
     await Promise.all(promises).then((values) => {
       values.forEach((value) => {
         friendsWithData.push({
-          name: `${value.firstName && value.firstName}${
-            value.lastName && " " + value.lastName
-          }`,
+          name: `${value.firstName && value.firstName}${value.lastName && ` ${value.lastName}`}`,
           image: value.image,
           href: `/user/${value.id}`,
           id: value.id,
-          type: "user",
+          type: 'user',
         });
       });
     });
@@ -83,16 +74,16 @@ export async function fetchEntities(
 
     results = {
       results: friendsWithData,
-      lastVisible: lastVisible,
+      lastVisible,
     };
-  } else if (type === "followers" || type === "following") {
-    let following = [];
-    let followingIds = [];
+  } else if (type === 'followers' || type === 'following') {
+    const following = [];
+    const followingIds = [];
 
     let query = firestore
-      .collection("following")
-      .where(type === "followers" ? "following" : "followedBy", "==", userId)
-      .orderBy("createdAt", "desc");
+      .collection('following')
+      .where(type === 'followers' ? 'following' : 'followedBy', '==', userId)
+      .orderBy('createdAt', 'desc');
 
     if (startAfter) {
       query = query.startAfter(startAfter);
@@ -102,18 +93,16 @@ export async function fetchEntities(
       query = query.limit(limit);
     }
 
-    let res = await query.get();
+    const res = await query.get();
     // Reset the last visible for a new pagination query
     let lastVisible = null;
     lastVisible = res.docs[res.docs.length - 1];
 
     for (const doc of res.docs) {
-      let data = doc.data();
+      const data = doc.data();
 
       following.push(data);
-      followingIds.push(
-        type === "followers" ? data.followedBy : data.following
-      );
+      followingIds.push(type === 'followers' ? data.followedBy : data.following);
     }
 
     let followsWithData = [];
@@ -126,13 +115,11 @@ export async function fetchEntities(
     await Promise.all(promises).then((values) => {
       values.forEach((value) => {
         followsWithData.push({
-          name: `${value.firstName && value.firstName}${
-            value.lastName && " " + value.lastName
-          }`,
+          name: `${value.firstName && value.firstName}${value.lastName && ` ${value.lastName}`}`,
           image: value.image,
           href: `/user/${value.id}`,
           id: value.id,
-          type: "user",
+          type: 'user',
         });
       });
     });
@@ -145,17 +132,17 @@ export async function fetchEntities(
 
     results = {
       results: followsWithData,
-      lastVisible: lastVisible,
+      lastVisible,
     };
-  } else if (type === "followingPages" || type === "followingVenues") {
-    let following = [];
-    let followingIds = [];
+  } else if (type === 'followingPages' || type === 'followingVenues') {
+    const following = [];
+    const followingIds = [];
 
     let query = firestore
-      .collection("following_pages")
-      .where("type", "==", type === "followingPages" ? "page" : "venue")
-      .where("userId", "==", userId)
-      .orderBy("createdAt", "desc");
+      .collection('following_pages')
+      .where('type', '==', type === 'followingPages' ? 'page' : 'venue')
+      .where('userId', '==', userId)
+      .orderBy('createdAt', 'desc');
 
     if (startAfter) {
       query = query.startAfter(startAfter);
@@ -165,16 +152,16 @@ export async function fetchEntities(
       query = query.limit(limit);
     }
 
-    let res = await query.get();
+    const res = await query.get();
     // Reset the last visible for a new pagination query
     let lastVisible = null;
     lastVisible = res.docs[res.docs.length - 1];
 
     for (const doc of res.docs) {
-      let data = doc.data();
+      const data = doc.data();
       // console.log("Each data", data);
 
-      followingIds.push(type === "followingPages" ? data.pageId : data.venueId);
+      followingIds.push(type === 'followingPages' ? data.pageId : data.venueId);
     }
 
     // console.log(type, followingIds);
@@ -182,8 +169,7 @@ export async function fetchEntities(
     let followsWithData = [];
     const promises = [];
     for (const id of followingIds) {
-      const promise =
-        type === "followingPages" ? getPage(id) : getVenueById(id);
+      const promise = type === 'followingPages' ? getPage(id) : getVenueById(id);
       promises.push(promise);
     }
 
@@ -195,11 +181,9 @@ export async function fetchEntities(
         followsWithData.push({
           name: value.name,
           image: value.profilePhoto,
-          href: `/${type === "followingPages" ? "pages" : "venues"}/${
-            value.id
-          }`,
+          href: `/${type === 'followingPages' ? 'pages' : 'venues'}/${value.id}`,
           id: value.id,
-          type: type === "followingPages" ? "page" : "venue",
+          type: type === 'followingPages' ? 'page' : 'venue',
         });
       });
     });
@@ -212,15 +196,15 @@ export async function fetchEntities(
 
     results = {
       results: followsWithData,
-      lastVisible: lastVisible,
+      lastVisible,
     };
-  } else if (type === "managedPages" || type === "managedVenues") {
-    let following = [];
-    let followingIds = [];
+  } else if (type === 'managedPages' || type === 'managedVenues') {
+    const following = [];
+    const followingIds = [];
 
     let query = firestore
-      .collection(type === "managedPages" ? "page_admins" : "venue_admin")
-      .where("admins", "array-contains", userId);
+      .collection(type === 'managedPages' ? 'page_admins' : 'venue_admin')
+      .where('admins', 'array-contains', userId);
 
     if (startAfter) {
       query = query.startAfter(startAfter);
@@ -230,7 +214,7 @@ export async function fetchEntities(
       query = query.limit(limit);
     }
 
-    let res = await query.get();
+    const res = await query.get();
     // Reset the last visible for a new pagination query
     let lastVisible = null;
     lastVisible = res.docs[res.docs.length - 1];
@@ -244,7 +228,7 @@ export async function fetchEntities(
     let followsWithData = [];
     const promises = [];
     for (const id of followingIds) {
-      const promise = type === "managedPages" ? getPage(id) : getVenueById(id);
+      const promise = type === 'managedPages' ? getPage(id) : getVenueById(id);
       promises.push(promise);
     }
 
@@ -253,9 +237,9 @@ export async function fetchEntities(
         followsWithData.push({
           name: value.name,
           image: value.profilePhoto,
-          href: `/${type === "managedPages" ? "pages" : "venues"}/${value.id}`,
+          href: `/${type === 'managedPages' ? 'pages' : 'venues'}/${value.id}`,
           id: value.id,
-          type: type === "managedPages" ? "page" : "venue",
+          type: type === 'managedPages' ? 'page' : 'venue',
         });
       });
     });
@@ -268,7 +252,7 @@ export async function fetchEntities(
 
     results = {
       results: followsWithData,
-      lastVisible: lastVisible,
+      lastVisible,
     };
   }
 
@@ -282,45 +266,43 @@ export async function fetchAllFollowing(userId: string, managedOnly?: boolean) {
   const following = [];
 
   // Add in this user as well
-  let currentUser = await getPublicProfileForUser(userId);
+  const currentUser = await getPublicProfileForUser(userId);
   following.push({
     name: `${currentUser.firstName && currentUser.firstName}${
-      currentUser.lastName && " " + currentUser.lastName
+      currentUser.lastName && ` ${currentUser.lastName}`
     }`,
     image: currentUser.image,
     href: `/user/${currentUser.id}`,
     id: currentUser.id,
-    type: "user",
+    type: 'user',
   });
 
-  let promises = [];
+  const promises = [];
 
   if (!managedOnly) {
-    const friendsPromise = fetchEntities("friends", userId, null, null);
+    const friendsPromise = fetchEntities('friends', userId, null, null);
     promises.push(friendsPromise);
 
-    const followingPromise = fetchEntities("following", userId, null, null);
+    const followingPromise = fetchEntities('following', userId, null, null);
     promises.push(followingPromise);
 
-    const venuePromise = fetchEntities("followingVenues", userId, null, null);
+    const venuePromise = fetchEntities('followingVenues', userId, null, null);
     promises.push(venuePromise);
 
-    const pagePromise = fetchEntities("followingPages", userId, null, null);
+    const pagePromise = fetchEntities('followingPages', userId, null, null);
     promises.push(pagePromise);
   }
 
-  const venueManagedPromise = fetchEntities("managedPages", userId, null, null);
+  const venueManagedPromise = fetchEntities('managedPages', userId, null, null);
   promises.push(venueManagedPromise);
 
-  const pageManagedPromise = fetchEntities("managedVenues", userId, null, null);
+  const pageManagedPromise = fetchEntities('managedVenues', userId, null, null);
   promises.push(pageManagedPromise);
 
   await Promise.all(promises).then((values) => {
     values.forEach((value) => {
       value.results.forEach((result) => {
-        if (
-          !following.find((x) => x.id === result.id && x.type === result.type)
-        ) {
+        if (!following.find((x) => x.id === result.id && x.type === result.type)) {
           following.push(result);
         }
       });
@@ -336,57 +318,40 @@ export async function fetchPostsFromEntity(
   startDate: Date,
   endDate: Date
 ) {
-  let posts = [];
+  const posts = [];
 
   const res = await firestore
-    .collection("notifications")
-    .where("createdAt", ">=", startDate)
-    .where("createdAt", "<=", endDate)
-    .where(
-      type === "page"
-        ? "pageSource"
-        : type === "venue"
-        ? "venueSource"
-        : "userId",
-      "==",
-      id
-    )
+    .collection('notifications')
+    .where('createdAt', '>=', startDate)
+    .where('createdAt', '<=', endDate)
+    .where(type === 'page' ? 'pageSource' : type === 'venue' ? 'venueSource' : 'userId', '==', id)
     .get();
 
   //let res = await firestore.collection('notifications').where('createdAt', '<=', new Date()).where('userId', '==', friendId).get()
   let allowComments = true;
 
   // Fetch users profile info to check if comments are allowed
-  if (res.docs.length > 0 && type === "user") {
-    let profile = await getPublicProfileForUser(id);
+  if (res.docs.length > 0 && type === 'user') {
+    const profile = await getPublicProfileForUser(id);
     if (!profile.allowFollowersToComment) allowComments = false;
   }
 
   for (const doc of res.docs) {
-    let data = doc.data();
-    if (data.type === "post") console.log(data);
-    posts.push({ ...doc.data(), id: doc.id, allowComments: allowComments });
+    const data = doc.data();
+    if (data.type === 'post') console.log(data);
+    posts.push({ ...doc.data(), id: doc.id, allowComments });
   }
 
   return posts;
 }
 
-export async function fetchPostsFromFollowing(
-  following: Entity[],
-  startDate: Date,
-  endDate: Date
-) {
-  console.log("Start date", startDate);
-  console.log("End date", endDate);
+export async function fetchPostsFromFollowing(following: Entity[], startDate: Date, endDate: Date) {
+  console.log('Start date', startDate);
+  console.log('End date', endDate);
   const promises = [];
 
   for (const entity of following) {
-    const promise = fetchPostsFromEntity(
-      entity.id,
-      entity.type,
-      startDate,
-      endDate
-    );
+    const promise = fetchPostsFromEntity(entity.id, entity.type, startDate, endDate);
 
     promises.push(promise);
   }
@@ -395,13 +360,13 @@ export async function fetchPostsFromFollowing(
   await Promise.all(promises).then((values) => {
     values.forEach((user) => {
       user.forEach((post) => {
-        if (post.type === "post") console.log("POST:", post);
+        if (post.type === 'post') console.log('POST:', post);
         let entityData = {};
         for (const entity of following) {
           if (
-            (entity.type === "user" && post.userId === entity.id) ||
-            (entity.type === "venue" && post.venueSource === entity.id) ||
-            (entity.type === "page" && post.pageSource === entity.id)
+            (entity.type === 'user' && post.userId === entity.id) ||
+            (entity.type === 'venue' && post.venueSource === entity.id) ||
+            (entity.type === 'page' && post.pageSource === entity.id)
           ) {
             entityData = entity;
           }
@@ -413,77 +378,70 @@ export async function fetchPostsFromFollowing(
   });
 
   posts = posts
-    .sort((a, b) =>
-      a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0
-    )
+    .sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0))
     .reverse();
 
-  console.log("Posts", posts);
+  console.log('Posts', posts);
   return posts;
 }
 
 export async function fetchSingleEntity(type: string, id: string) {
-  console.log(`Type: ${type}  --  Id: ${id}`);
+  // console.log(`Type: ${type}  --  Id: ${id}`);
   let entity = {};
 
-  if (type === "page") {
+  if (type === 'page') {
     const value: any = await getPage(id);
     entity = {
       name: value.name,
       image: value.profilePhoto,
       href: `/pages/${value.id}`,
       id: value.id,
-      type: "page",
+      type: 'page',
     };
-  } else if (type === "user") {
+  } else if (type === 'user') {
     const value: any = await getPublicProfileForUser(id);
     entity = {
-      name: `${value.firstName && value.firstName}${
-        value.lastName && " " + value.lastName
-      }`,
+      name: `${value.firstName && value.firstName}${value.lastName && ` ${value.lastName}`}`,
       image: value.image,
       href: `/user/${value.id}`,
       id: value.id,
-      type: "user",
+      type: 'user',
     };
-  } else if (type === "venue") {
+  } else if (type === 'venue') {
     const value: any = await getVenueById(id);
     entity = {
       name: value.name,
       image: value.profilePhoto,
       href: `/venue/${value.id}`,
       id: value.id,
-      type: "venue",
+      type: 'venue',
     };
   }
 
   return entity as Entity;
 }
 
-export async function createPost(
-  post: { image?: string; text?: string },
-  entity: Entity
-) {
-  console.log("Entity", entity);
-  let p: any = {
-    post: post,
+export async function createPost(post: { image?: string; text?: string }, entity: Entity) {
+  // console.log('Entity', entity);
+  const p: any = {
+    post,
     createdAt: new Date(),
     sourceId: entity.id,
     sourceType: entity.type,
-    type: "post",
+    type: 'post',
     recipeId: null,
   };
 
-  if (entity.type === "page") {
+  if (entity.type === 'page') {
     p.pageSource = entity.id;
-  } else if (entity.type === "user") {
+  } else if (entity.type === 'user') {
     p.userId = entity.id;
-  } else if (entity.type === "venue") {
+  } else if (entity.type === 'venue') {
     p.venueSource = entity.id;
   }
 
-  console.log("Post into DB", p);
-  await firestore.collection("notifications").add(p);
+  console.log('Post into DB', p);
+  await firestore.collection('notifications').add(p);
 }
 
 export async function commentOnNotification(
@@ -495,31 +453,31 @@ export async function commentOnNotification(
   postOwnerType,
   fromEntityType
 ) {
-  let obj: Comment = {
-    notificationId: notificationId,
+  const obj: Comment = {
+    notificationId,
     entityId: fromEntityId,
     entityType: fromEntityType,
     createdAt: new Date(),
-    comment: comment,
-    repliedToComment: repliedToComment,
+    comment,
+    repliedToComment,
     sourceType: postOwnerType,
     sourceId: fromEntityId,
   };
 
-  console.log("Comment Object", obj);
+  console.log('Comment Object', obj);
 
-  let res = await firestore.collection("notification_comments").add(obj);
+  const res = await firestore.collection('notification_comments').add(obj);
 
   if (fromEntityId !== postOwnerId) {
-    let seen: Notification = {
-      type: repliedToComment ? "comment_reply" : "comment",
+    const seen: Notification = {
+      type: repliedToComment ? 'comment_reply' : 'comment',
       actionId: res.id,
       seen: false,
       createdAt: new Date(),
       toEntityType: postOwnerType,
       toEntityId: postOwnerId,
-      fromEntityType: fromEntityType,
-      fromEntityId: fromEntityId,
+      fromEntityType,
+      fromEntityId,
     };
 
     // if (sourceType === "user") {
@@ -530,18 +488,18 @@ export async function commentOnNotification(
     //   seen.venueId = postOwnerId;
     // }
 
-    console.log("Seen", seen);
-    await firestore.collection("notifications_seen").add(seen);
+    console.log('Seen', seen);
+    await firestore.collection('notifications_seen').add(seen);
   }
 }
 
 export async function getCommentsForNotification(notificationId) {
-  let comments = [];
-  let res = await firestore
-    .collection("notification_comments")
-    .where("notificationId", "==", notificationId)
-    .where("repliedToComment", "==", false)
-    .orderBy("createdAt")
+  const comments = [];
+  const res = await firestore
+    .collection('notification_comments')
+    .where('notificationId', '==', notificationId)
+    .where('repliedToComment', '==', false)
+    .orderBy('createdAt')
     .get();
   //let res = await firestore.collection('notifications').where('createdAt', '<=', new Date()).where('userId', '==', friendId).get()
 
@@ -553,11 +511,11 @@ export async function getCommentsForNotification(notificationId) {
 }
 
 export async function getRepliesForComment(commentId) {
-  let replies = [];
-  let res = await firestore
-    .collection("notification_comments")
-    .where("repliedToComment", "==", commentId)
-    .orderBy("createdAt")
+  const replies = [];
+  const res = await firestore
+    .collection('notification_comments')
+    .where('repliedToComment', '==', commentId)
+    .orderBy('createdAt')
     .get();
   //let res = await firestore.collection('notifications').where('createdAt', '<=', new Date()).where('userId', '==', friendId).get()
 
@@ -569,27 +527,22 @@ export async function getRepliesForComment(commentId) {
 }
 
 export async function deleteComment(id) {
-  await firestore.collection("notification_comments").doc(id).delete();
+  await firestore.collection('notification_comments').doc(id).delete();
 
-  let res = await firestore
-    .collection("notifications_seen")
-    .where("type", "==", "comment")
-    .where("actionId", "==", id)
+  const res = await firestore
+    .collection('notifications_seen')
+    .where('type', '==', 'comment')
+    .where('actionId', '==', id)
     .get();
 
-  if (res.docs.length > 0)
-    await firestore
-      .collection("notifications_seen")
-      .doc(res.docs[0].id)
-      .delete();
+  if (res.docs.length > 0) {
+    await firestore.collection('notifications_seen').doc(res.docs[0].id).delete();
+  }
 }
 
 export async function getOrignalPostIdOfComment(commentId) {
-  let res = await firestore
-    .collection("notification_comments")
-    .doc(commentId)
-    .get();
+  const res = await firestore.collection('notification_comments').doc(commentId).get();
 
-  let data = res.data();
+  const data = res.data();
   return data.notificationId;
 }

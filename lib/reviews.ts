@@ -1,10 +1,10 @@
-import { firestore } from "./firebase";
-import { getPublicProfileForUser } from "./firestore";
+import { firestore } from './firebase';
+import { fetchSingleEntity, getPublicProfileForUser } from './social';
 
 export async function getReviewsForRecipe(id) {
   let reviews = [];
 
-  let query = firestore.collection("reviews").where("recipeId", "==", id);
+  const query = firestore.collection('reviews').where('recipeId', '==', id);
   //.orderBy('createdAt', "des")
 
   await query.get().then(function (querySnapshot) {
@@ -16,7 +16,7 @@ export async function getReviewsForRecipe(id) {
   // Fetch user data for reviews and populate
   let promises = [];
   for (const review of reviews) {
-    const promise = getPublicProfileForUser(review.uid);
+    const promise = fetchSingleEntity('user', review.uid);
     promises.push(promise);
   }
 
@@ -34,7 +34,7 @@ export async function getReviewsForRecipe(id) {
 }
 
 export async function getReviewById(id) {
-  let query = await firestore.collection("reviews").doc(id).get();
+  let query = await firestore.collection('reviews').doc(id).get();
 
   return { ...query.data(), id: query.id };
 }
@@ -48,7 +48,7 @@ export async function addReview(review, editReviewId, recipe) {
   //   ? await firestore.collection("reviews").doc(editReviewId).update(review)
   //   : await firestore.collection("reviews").add(review);
 
-  await firestore.collection("reviews").add(review);
+  await firestore.collection('reviews').add(review);
 
   // Add back in all the user tracking
   // let recipeRes = await getRecipeById(review.recipeId);
@@ -134,55 +134,49 @@ export async function addReview(review, editReviewId, recipe) {
 }
 
 export async function getReviewAverages(id) {
-  let res = await firestore.collection("review_average").doc(id).get();
+  let res = await firestore.collection('review_average').doc(id).get();
   return { ...res.data(), id: res.id };
 }
 
 export async function deleteReview(reviewId, userId) {
   try {
     // Delete review
-    await firestore.collection("reviews").doc(reviewId).delete();
+    await firestore.collection('reviews').doc(reviewId).delete();
 
     // Delete any notifications about the review
-    let res = await db
-      .collection("notifications")
-      .where("reviewId", "==", reviewId)
-      .get();
+    let res = await db.collection('notifications').where('reviewId', '==', reviewId).get();
     for (const doc of res.docs) {
-      console.log("Spotted notificaiton to delete: ", doc.data(), doc.id);
+      console.log('Spotted notificaiton to delete: ', doc.data(), doc.id);
       try {
-        await firestore.collection("notifications").doc(doc.id).delete();
+        await firestore.collection('notifications').doc(doc.id).delete();
       } catch (e) {
-        console.warn("Cant delete from notifications collection", e);
+        console.warn('Cant delete from notifications collection', e);
       }
 
       // Delete any posts / comments on that notification
       let moreRes = await db
-        .collection("notification_comments")
-        .where("notificationId", "==", doc.id)
+        .collection('notification_comments')
+        .where('notificationId', '==', doc.id)
         .get();
       for (const otherDoc of moreRes.docs) {
-        console.log("Notification comment to delete:", otherDoc.data());
+        console.log('Notification comment to delete:', otherDoc.data());
         try {
-          await db
-            .collection("notification_comments")
-            .doc(otherDoc.id)
-            .delete();
+          await db.collection('notification_comments').doc(otherDoc.id).delete();
         } catch (e) {
-          console.warn("Cant delete from notifications_comments collection", e);
+          console.warn('Cant delete from notifications_comments collection', e);
         }
       }
     }
   } catch (e) {
-    console.warn("Error deleting review", e);
+    console.warn('Error deleting review', e);
   }
 }
 
 export async function checkIfReviewExists(recipeId, userId, returnId) {
   let res = await firestore
-    .collection("reviews")
-    .where("recipeId", "==", recipeId)
-    .where("uid", "==", userId)
+    .collection('reviews')
+    .where('recipeId', '==', recipeId)
+    .where('uid', '==', userId)
     .get();
   if (res.docs.length > 0) {
     return true;

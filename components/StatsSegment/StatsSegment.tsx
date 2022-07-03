@@ -43,8 +43,6 @@ interface StatsSegmentsProps {
 }
 
 export function StatsSegments({ total, diff, data }: StatsSegmentsProps) {
-
-    console.log('Data in component', data)
     const { classes } = useStyles();
 
     const segments = data.map((segment) => ({

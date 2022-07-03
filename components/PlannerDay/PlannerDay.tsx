@@ -39,10 +39,11 @@ interface PlannerDayProps {
     moveItem: Function;
     columnId: string;
     getPlanners?: Function;
+    userCanEdit: boolean;
 }
 
 export function PlannerDay(props: PlannerDayProps) {
-    const { recipes, removeFromPlanner, date, changeDateOfRecipeInPlanner, reorderRecipeInPlanner, adjustServings, servingsChanged, collaborative, collaborativePlannerId, visibleWeek, moveItem, columnId, getPlanners } = props;
+    const { recipes, removeFromPlanner, date, changeDateOfRecipeInPlanner, reorderRecipeInPlanner, adjustServings, servingsChanged, collaborative, collaborativePlannerId, visibleWeek, moveItem, columnId, getPlanners, userCanEdit } = props;
     const { user } = useContext(UserContext);
     const modals = useModals();
 
@@ -51,7 +52,6 @@ export function PlannerDay(props: PlannerDayProps) {
     useEffect(() => {
         console.log('Servings changed? ');
     }, [servingsChanged]);
-
 
     const addRecipeToPlanner = (id: string, date: Date) => {
         console.log(`Adding to planner with id ${id} on date ${date}`);
@@ -108,7 +108,7 @@ export function PlannerDay(props: PlannerDayProps) {
                             selectMode
                             selectRecipe={(recipeId: string) => {
                                 selectRecipe(recipeId);
-                                modals.closeModal(recipeId);
+                                modals.closeModal(id);
                             }
                             }
                             selectedRecipes={selectedRecipes}
@@ -135,8 +135,6 @@ export function PlannerDay(props: PlannerDayProps) {
         });
     };
 
-
-
     return (
         <div style={{ position: 'relative' }}>
             <LoadingOverlay visible={loading} color="#F8F9FA" />
@@ -157,21 +155,26 @@ export function PlannerDay(props: PlannerDayProps) {
                         <Badge size="xs">Today</Badge>
                         : null}
                 </Group>
-                <Menu>
-                    {/* <Menu.Label>Application</Menu.Label> */}
-                    <Menu.Item icon={<Soup size={14} />} onClick={() => openRecipeSelectModal()}>Add recipe</Menu.Item>
-                    {/* {recipes.length > 0 ? <Menu.Item icon={<Notes size={14} />} onClick={() => addToListModal()}>Add to list</Menu.Item> : null} */}
-                    {recipes.length > 0 ?
-                        <AddToListButton recipes={recipes}>
-                            <Menu.Item icon={<Notes size={14} />}>Add to list</Menu.Item>
-                        </AddToListButton>
-                        : null}
-                    <Divider />
+                {recipes.length > 0 || userCanEdit ?
+                    <Menu>
+                        {/* <Menu.Label>Application</Menu.Label> */}
+                        {userCanEdit ? <Menu.Item icon={<Soup size={14} />} onClick={() => openRecipeSelectModal()}>Add recipe</Menu.Item> : null}
+                        {/* {recipes.length > 0 ? <Menu.Item icon={<Notes size={14} />} onClick={() => addToListModal()}>Add to list</Menu.Item> : null} */}
+                        {recipes.length > 0 ?
+                            <AddToListButton recipes={recipes}>
+                                <Menu.Item icon={<Notes size={14} />}>Add to list</Menu.Item>
+                            </AddToListButton>
+                            : null}
 
-                    {/* <Menu.Label>Danger zone</Menu.Label> */}
-                    {/* <Menu.Item icon={<ArrowsLeftRight size={14} />}>Transfer my data</Menu.Item> */}
-                    <Menu.Item color="red" icon={<Trash size={14} />}>Clear day</Menu.Item>
-                </Menu>
+
+                        {/* <Menu.Label>Danger zone</Menu.Label> */}
+                        {/* <Menu.Item icon={<ArrowsLeftRight size={14} />}>Transfer my data</Menu.Item> */}
+                        {userCanEdit ? (
+                            <>
+                                <Divider />
+                                <Menu.Item color="red" icon={<Trash size={14} />} onClick={() => removeFromPlanner && removeFromPlanner(recipes.map(recipe => recipe.plannerData.id))}>Clear day</Menu.Item>
+                            </>) : null}
+                    </Menu> : null}
             </Group>
 
             {recipes.length > 0 ? <NutrientStats recipes={recipes} /> : null}
@@ -195,8 +198,8 @@ export function PlannerDay(props: PlannerDayProps) {
                         <Stack mt={8}>
                             {recipes.map((item, index) => (
                                 <Draggable
-                                    key={item.id}
-                                    draggableId={item.id}
+                                    key={item.plannerData.id}
+                                    draggableId={item.plannerData.id}
                                     index={index}
                                 >
                                     {(provided, snapshot) => (
@@ -220,6 +223,9 @@ export function PlannerDay(props: PlannerDayProps) {
                                                 item={item}
                                                 index={index}
                                                 plannerDay={date}
+                                                removeFromPlanner={removeFromPlanner}
+                                                getPlanners={getPlanners}
+                                                userCanEdit={userCanEdit}
                                             />
                                         </div>
                                     )}

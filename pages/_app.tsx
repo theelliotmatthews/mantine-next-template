@@ -7,7 +7,7 @@ import { MantineProvider, ColorScheme, ColorSchemeProvider, Global, Container } 
 import { NotificationsProvider } from '@mantine/notifications';
 import { ModalsProvider } from '@mantine/modals';
 import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend'
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import { UserContext } from '../lib/context';
 import { useUserData } from '../lib/hooks';
 import HeaderSimple from '../components/Header/Header';
@@ -33,6 +33,17 @@ export default function App(props: AppProps & { colorScheme: ColorScheme }) {
         <link rel="shortcut icon" href="/favicon.svg" />
       </Head>
 
+      <Global styles={(theme) => ({
+        '.ql-mention-list-container': {
+          zIndex: '999 !important',
+        },
+
+        '.ql-toolbar': {
+          display: 'none'
+        }
+      })}
+      />
+
       <UserContext.Provider value={userData}>
         <ColorSchemeProvider colorScheme={colorScheme} toggleColorScheme={toggleColorScheme}>
           <MantineProvider
@@ -56,12 +67,12 @@ export default function App(props: AppProps & { colorScheme: ColorScheme }) {
                   //   image: 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?ixid=MXwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHw%3D&ixlib=rb-1.2.1&auto=format&fit=crop&w=255&q=80',
                   // }}
                   links={[
-                    { label: 'Search', link: '../search' },
-                    { label: 'Social', link: '../social' },
-                    { label: 'My Recipes', link: '../my-recipes/saved' },
-                    { label: 'Planner', link: '../planner' },
-                    { label: 'Shopping List', link: '../list' },
-                    { label: 'Venues', link: '../venues' },
+                    { label: 'Search', link: './search' },
+                    { label: 'Social', link: './social' },
+                    { label: 'My Recipes', link: './my-recipes/saved' },
+                    { label: 'Planner', link: './planner' },
+                    { label: 'Shopping List', link: './list' },
+                    { label: 'Venues', link: './venues' },
                   ]}
                 />
                 {/* <DndProvider backend={HTML5Backend}> */}

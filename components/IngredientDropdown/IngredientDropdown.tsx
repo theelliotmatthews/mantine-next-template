@@ -1,9 +1,9 @@
 /* eslint-disable no-restricted-syntax */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { IngredientOccurance } from '../../lib/types';
 import { Badge, Button, Group, Stack } from '@mantine/core';
 import { BrandGoogle, ChartBar, Notes, Soup } from 'tabler-icons-react';
+import { IngredientOccurance } from '../../lib/types';
 // import { ModalContext } from '../../lib/context';
 
 interface IngredientDropdownProps {

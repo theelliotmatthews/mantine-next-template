@@ -36,13 +36,13 @@ export async function checkIfDocumentExists(
   // Construct query
   let query: any = ref;
 
-  console.log('Parameters', parameters);
+  // console.log('Parameters', parameters);
   for (const p of parameters) {
     query = query.where(p.field, p.check, p.value);
   }
 
   const res = await query.get();
-  console.log('Res', res);
+  // console.log('Res', res);
   if (res.docs.length > 0) {
     return res.docs[0].id;
   }
@@ -73,9 +73,9 @@ export async function addDocumentToCollection(collection: string, payload: any, 
 // For toggling the status of a recipe
 export async function toggleRecipeStatus(type: string, userId: string, recipe: any) {
   const collection = 'user_recipes';
-  console.log('Type', type);
-  console.log('userId', userId);
-  console.log('recipe', recipe);
+  // console.log('Type', type);
+  // console.log('userId', userId);
+  // console.log('recipe', recipe);
   // Check current status
   const exists = await checkIfDocumentExists(collection, [
     { field: 'type', check: '==', value: type },
@@ -132,7 +132,7 @@ export async function getRecipeById(id: string) {
   }
 
   const data: Recipe | any = res.data();
-  console.log('Recipe data', data);
+  // console.log('Recipe data', data);
   data.servingsAdjusted = data.servings ? data.servings : 1;
 
   const creatorData = await fetchRecipeCreatorData(data.channel, data.custom ? 'user' : 'channel');
@@ -154,7 +154,7 @@ export async function fetchDataForIngredients(ingredients: IngredientFormatted[]
   }
 
   await Promise.all(promises).then((values) => {
-    console.log('VALUES', values);
+    // console.log('VALUES', values);
     for (const ingredient of ingredientsWithData) {
       for (const value of values) {
         if (value && ingredient.ingredient == value.ingredient) {

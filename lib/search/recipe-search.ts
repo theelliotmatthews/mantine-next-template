@@ -24,14 +24,14 @@ export async function searchRecipes(
   // This is a bit different as we have to fetch the recipeId first from user_recipes, then fetch recipe data
   const userRecipeSearch = (creatorType && recipeCreatorId && userRecipeType) || collectionId;
 
-  console.log('Check 1', creatorType && recipeCreatorId && userRecipeType);
-  console.log('Check 2', !collectionId);
-  console.log('----------------------------');
-  console.log('Creator type', creatorType);
-  console.log('recipeCreatorId', recipeCreatorId);
-  console.log('userRecipeType', userRecipeType);
-  console.log('collectionId', collectionId);
-  console.log('User recipe search', userRecipeSearch);
+  // console.log('Check 1', creatorType && recipeCreatorId && userRecipeType);
+  // console.log('Check 2', !collectionId);
+  // console.log('----------------------------');
+  // console.log('Creator type', creatorType);
+  // console.log('recipeCreatorId', recipeCreatorId);
+  // console.log('userRecipeType', userRecipeType);
+  // console.log('collectionId', collectionId);
+  // console.log('User recipe search', userRecipeSearch);
 
   // If no search term or ingredients, return
   if (searchTerm.length === 0 && ingredients.length === 0 && !userRecipeSearch && !combination) {
@@ -84,9 +84,9 @@ export async function searchRecipes(
   }
 
   // Check for channel
-  // if (channel) {
-  //   query = query.where("channel", "==", channel);
-  // }
+  if (channel) {
+    query = query.where('channel', '==', channel);
+  }
 
   // Check for collection Id
   if (collectionId) {
@@ -159,7 +159,7 @@ export async function searchRecipes(
   if (creatorType && recipeCreatorId && userRecipeType) {
     // Created recipes
     if (userRecipeType === 'created') {
-      console.log('Yes created');
+      // console.log('Yes created');
 
       // New data structures
       // query = query.where('entity.id', '==', recipeCreatorId);
@@ -184,7 +184,7 @@ export async function searchRecipes(
 
       if (searchTerm.length === 0) {
         query = query.orderBy('added', 'desc');
-        console.log('Order by added');
+        // console.log('Order by added');
       }
     }
   } else if (collectionId) {
@@ -278,7 +278,7 @@ export async function searchRecipes(
     lastVisible,
   };
 
-  console.log('Results', results);
+  // console.log('Results', results);
 
   return results as Results;
 }

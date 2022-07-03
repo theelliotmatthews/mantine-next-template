@@ -1,5 +1,5 @@
 import { auth, firestore } from '../firebase';
-import { Ingredient } from '../types';
+import { Ingredient, IngredientFormatted } from '../types';
 
 export async function searchIngredients(searchTerm: string, ingredients: any[]) {
   // If no search term or ingredients, return
@@ -115,4 +115,23 @@ export async function addNewAvoidance(payload: any) {
   } catch (e) {
     console.warn('Cant create avoidance', e);
   }
+}
+
+export async function fetchDataForIngredients(ingredients: IngredientFormatted[]) {
+  if (!ingredients) return null;
+  const res = await fetch('/ingredients.txt');
+  const json = await res.json();
+
+  const copy = [...ingredients];
+
+  console.log('Ingredient database', json);
+  for (const ingredient of copy) {
+    const foundIngredient = json.ingredients_collection.find(
+      (i) => i.ingredient === ingredient.ingredient
+    );
+
+    if (foundIngredient) ingredient.data = foundIngredient;
+  }
+
+  return copy;
 }

@@ -1,28 +1,22 @@
 /* eslint-disable no-restricted-syntax */
 import React, { useContext, useEffect, useState } from 'react';
-import { Badge, Grid, Group, Stack, Tabs } from '@mantine/core';
-import { Settings, MessageCircle, Coin, Calendar, Users } from 'tabler-icons-react';
+import { Button, Grid, Group, Stack, Tabs, Text } from '@mantine/core';
+import { Calendar, Users, Notes, Trash } from 'tabler-icons-react';
 import {
-    getDay,
     startOfWeek,
     lastDayOfWeek,
-    format,
     add,
-    isSameWeek,
     isSameDay,
-    isToday,
 } from 'date-fns';
-import { DragDropContext, Draggable, Droppable } from 'react-beautiful-dnd';
-import Link from 'next/link';
-import { useRouter } from 'next/router';
-import { array, date } from 'zod';
-import { isSameDate } from '@mantine/dates';
+import { DragDropContext } from 'react-beautiful-dnd';
+import { useModals } from '@mantine/modals';
 import { UserContext } from '../../lib/context';
-import { getRecipesInPlanner, updateOrderOfRecipesInVisiblePlanner } from '../../lib/planner/planner';
-import { Recipe } from '../../lib/types';
-import ChevronButtons from '../ChevronButtons/ChevronButtons';
+import { clearVisibleWeekOfPlanner, getCollaborativePlannerById, getRecipesInPlanner, removeRecipeFromPlanner, updateOrderOfRecipesInVisiblePlanner } from '../../lib/planner/planner';
+import { CollaborativePlanner, DragColumn, DragResult, Recipe } from '../../lib/types';
 import { formatDate } from '../../lib/formatting';
-import PlannerDay from '../PlannerDay/PlannerDay';
+import { PlannerDay } from '../PlannerDay/PlannerDay';
+import AddToListButton from '../AddToListButton/AddToListButton';
+import ChevronButtons from '../ChevronButtons/ChevronButtons';
 
 interface PlannerProps {
     collaborativePlannerId?: string;
@@ -33,20 +27,25 @@ interface PlannerProps {
 interface PlannerDay { day: Date; recipes: Recipe[] }
 
 export default function Planner(props: PlannerProps) {
-    const { collaborativePlannerId, collaborative } = props;
+    const { collaborativePlannerId, collaborative, slideover } = props;
 
     const [recipes, setRecipes] = useState<Recipe[]>([]);
     const [visibleWeek, setVisibleWeek] = useState<PlannerDay[]>([]);
-    const [weekStart, setWeekStart] = useState<Date>();
-    const [weekEnd, setWeekEnd] = useState<Date>();
-    const [planner, setPlanner] = useState([]);
+    const [recipesInWeek, setRecipesInWeek] = useState<Recipe[]>([]);
+    const [weekStart, setWeekStart] = useState<Date>(new Date());
+    const [weekEnd, setWeekEnd] = useState<Date>(new Date());
+    const [planner, setPlanner] = useState<Recipe[]>([]);
     const [updated, setUpdated] = useState(false);
     const [servingsChanged, setServingsChanged] = useState(0);
+    const [recipesToSkipUpdate, setRecipesToSkipUpdate] = useState<string[]>([]);
+    const [userCanEdit, setUserCanEdit] = useState<boolean>(false);
+
+    const modals = useModals();
 
     const { user } = useContext(UserContext);
 
     // Switch the week
-    const changeWeek = (future) => {
+    const changeWeek = (future: boolean) => {
         if (future) {
             setWeekStart(add(weekStart, { weeks: 1 }));
             setWeekEnd(add(weekEnd, { weeks: 1 }));
@@ -56,18 +55,8 @@ export default function Planner(props: PlannerProps) {
         }
     };
 
-    // Remove a recipe from a planner
-    const removeFromPlanner = async (recipeToRemove) => {
-        if (!recipeToRemove.plannerData) return;
-
-        // Remove from firestore
-        await removeRecipeFromPlanner(recipeToRemove.plannerData.id);
-
-        reorderRecipeInPlanner(recipeToRemove, 0, recipeToRemove.plannerData.date, true);
-    };
-
     // Change the date of a recipe in the planner
-    const changeDateOfRecipeInPlanner = async (date, recipeToUpdate) => {
+    const changeDateOfRecipeInPlanner = async (date: Date, recipeToUpdate: Recipe) => {
         // Search through recipes and update
         const plannerCopy = [...planner];
         for (const recipe of plannerCopy) {
@@ -80,142 +69,25 @@ export default function Planner(props: PlannerProps) {
         //await updatePlannerRecipe(recipeToUpdate.plannerData.id, { date: date })
     };
 
-    const reorderRecipeInPlanner = async (recipeToReorder, newOrder, date, del) => {
-        // return
-        let movingToADifferentDay = false;
-
-        if (!isSameDay(date, recipeToReorder.plannerData.date)) {
-            movingToADifferentDay = true;
-        }
-
-        // Make sure it's not the same order and same day
-        if (recipeToReorder.plannerData.order === newOrder && recipeToReorder.date === date) return;
-
-        // Find recipes that have the same date
-        let plannerCopy = [...planner];
-
-        const currentOrder = recipeToReorder.plannerData.order;
-        const diffInOrder = newOrder - recipeToReorder.plannerData.order;
-        const currentDate = recipeToReorder.plannerData.date;
-
-        // Store bulk updates in promises
-        const promises = [];
-
-        // Cycle through each recipe
-        for (const recipe of plannerCopy) {
-            const recipeCurrentOrder = recipe.plannerData.order;
-            if (movingToADifferentDay) {
-                // Update the order of the new day
-                if (isSameDay(date, recipe.plannerData.date)) {
-                    // Check to see if this is the recipe we have dragged
-                    if (recipe.plannerData.id !== recipeToReorder.plannerData.id) {
-                        // If it is then set this as the new order
-                        if (recipeCurrentOrder >= newOrder) {
-                            recipe.plannerData.order = recipeCurrentOrder + 1;
-                            const promise = updatePlannerRecipe(recipe.plannerData.id, { order: recipeCurrentOrder + 1 });
-                            promises.push(promise);
-                        }
-                    }
-                }
-
-                // Update the order of the old day - should be only if
-                if (isSameDay(currentDate, recipe.plannerData.date)) {
-                    // Check to see if this is the recipe we have dragged
-                    if (recipe.plannerData.id === recipeToReorder.plannerData.id) {
-                        // If it is then set this as the new order
-
-                        if (!del) {
-                            recipe.plannerData.order = newOrder;
-                            recipe.plannerData.date = date;
-                            const promise = updatePlannerRecipe(recipe.plannerData.id, { order: newOrder, date });
-                            promises.push(promise);
-                        }
-                    } else {
-                        // Update anything with a lower index
-                        if (recipeCurrentOrder > currentOrder) {
-                            recipe.plannerData.order = recipeCurrentOrder - 1;
-                            const promise = updatePlannerRecipe(recipe.plannerData.id, { order: recipeCurrentOrder - 1 });
-                            promises.push(promise);
-                        }
-                    }
-                }
-            } else {
-                // Check if same day
-                if (isSameDay(recipeToReorder.plannerData.date, recipe.plannerData.date)) {
-                    // Check to see if this is the recipe we have dragged
-                    if (recipe.plannerData.id === recipeToReorder.plannerData.id) {
-                        if (!del) {
-                            // If it is then set this as the new order
-                            recipe.plannerData.order = newOrder;
-                            const promise = updatePlannerRecipe(recipe.plannerData.id, { order: newOrder });
-                            promises.push(promise);
-                        }
-                    } else {
-                        if (!del) {
-                            // Check if this is an increase of decrease
-                            if (diffInOrder < 0 && ((recipeCurrentOrder < currentOrder) && (recipeCurrentOrder > newOrder - 1))) {
-                                recipe.plannerData.order = recipeCurrentOrder + 1;
-                                const promise = updatePlannerRecipe(recipe.plannerData.id, { order: recipeCurrentOrder + 1 });
-                                promises.push(promise);
-                            }
-
-                            if (diffInOrder > 0 && ((recipeCurrentOrder <= newOrder) && (recipeCurrentOrder > currentOrder))) {
-                                recipe.plannerData.order = recipeCurrentOrder - 1;
-                                const promise = updatePlannerRecipe(recipe.plannerData.id, { order: recipeCurrentOrder - 1 });
-                                promises.push(promise);
-                            }
-                        }
-
-                        // For when we delete from a day
-                        if (del && (recipeCurrentOrder > currentOrder)) {
-                            recipe.plannerData.order = recipeCurrentOrder - 1;
-                            const promise = updatePlannerRecipe(recipe.plannerData.id, { order: recipeCurrentOrder - 1 });
-                            promises.push(promise);
-                        }
-                    }
-                }
-            }
-        }
-
-        // Delete the recipe if we need to
-        if (del) {
-            // Filter the current visible week
-            const copy = [];
-            plannerCopy.forEach(recipe => {
-                if (recipe.plannerData.id !== recipeToReorder.plannerData.id) {
-                    copy.push(recipe);
-                }
-            });
-            plannerCopy = [...copy];
-        }
-
-        setPlanner([...plannerCopy]);
-        setUpdated(!updated);
-
-        await Promise.all(promises);
-    };
-
     // Clear planner for the week
     const clear = async () => {
-        const ids = [];
+        const ids: string[] = [];
         planner.forEach(recipe => {
             ids.push(recipe.plannerData.id);
         });
 
-        const promises = [];
+        const promises: any = [];
         ids.forEach(id => {
             const promise = removeRecipeFromPlanner(id);
             promises.push(promise);
         });
 
-        await Promise.all(promises).then((values) => {
-
-        });
+        await Promise.all(promises);
         setPlanner([]);
     };
 
     // Adjust the servings of a recipe
-    const adjustServings = (recipeToAdjust, newServings) => {
+    const adjustServings = (recipeToAdjust: Recipe, newServings: number) => {
         const copy = [...planner];
         for (const recipe of copy) {
             if (recipe.plannerData.id === recipeToAdjust.plannerData.id) {
@@ -228,12 +100,22 @@ export default function Planner(props: PlannerProps) {
         setServingsChanged(servingsChanged + 1);
     };
 
-    const getPlanners = async () => {
+    const getPlanners = async (updateOrder?: boolean, skipRecipe?: string) => {
         const res = await getRecipesInPlanner(user.uid, weekStart, weekEnd, true, collaborativePlannerId);
-
-        console.log('Getting planner res', res);
+        console.log('PLANNER', res)
         setRecipes(res);
         setPlanner(res);
+
+        setRecipesToSkipUpdate([skipRecipe]);
+
+        // if (updateOrder) {
+        //     await updateOrderOfRecipesInVisiblePlanner(visibleWeek);
+        // }
+
+        // if (updateOrder && skipRecipe) {
+        //     console.log('Updating and skipping')
+        //     await updateOrderOfRecipesInVisiblePlanner(visibleWeek);
+        // }
     };
 
     // Load in recipes for this planner
@@ -255,24 +137,43 @@ export default function Planner(props: PlannerProps) {
         }));
     }, []);
 
+    // Check if the user can edit
+    useEffect(() => {
+        const canEdit = async () => {
+            console.log('collaborativePlannerId', collaborativePlannerId);
+            const res: CollaborativePlanner = await getCollaborativePlannerById(collaborativePlannerId, true);
+            console.log('Shared planner', res);
+            return setUserCanEdit(res.collaborative || (res.createdBy === user.uid));
+        };
+        if (!collaborative) {
+            console.log('Users own planner');
+            setUserCanEdit(true);
+        } else {
+            canEdit();
+        }
+    }, []);
+
     // Change the visible week when the week start changes
     useEffect(() => {
         // console.log('Weekstart or planner changing', planner)
         if (weekStart) {
-            const week = {};
-            for (let x = 0; x < 7; x++) {
-                const day = {
+            const week: any = {};
+            const allRecipes: Recipe[] = [];
+            for (let x = 0; x < 7; x += 1) {
+                const day: {
+                    date: Date,
+                    recipes: Recipe[],
+                    id: string
+                } = {
                     date: add(weekStart, { days: x }),
                     recipes: [],
                     id: (x + 1).toString(),
                 };
 
                 // Cycle through and find matching recipes
-                let hardcodedIndex = 0;
-                planner.forEach(recipe => {
+                planner.forEach((recipe: Recipe) => {
                     if (recipe && isSameDay(recipe.plannerData.date, day.date)) {
-                        day.recipes.push({ ...recipe, hardcodedIndex });
-                        hardcodedIndex += 1;
+                        day.recipes.push({ ...recipe });
                     }
                 });
 
@@ -280,37 +181,31 @@ export default function Planner(props: PlannerProps) {
                     a.plannerData.order < b.plannerData.order ? -1 : a.plannerData.order > b.plannerData.order ? 1 : 0
                 );
 
+                day.recipes.forEach(recipe => {
+                    allRecipes.push(recipe);
+                });
+
                 // week.push(day);
                 week[(x + 1).toString()] = day;
             }
             setVisibleWeek(week);
-            console.log('Visible week', week);
+            setRecipesInWeek(allRecipes);
         }
-
-        console.log('Planner', planner);
     }, [weekStart, planner, updated]);
 
-    const tabs = [
-        {
-            label: 'My Planner',
-            icon: <Calendar size={14} />,
-            href: '/planner',
-        },
-        {
-            label: 'Shared Planners',
-            icon: <Users size={14} />,
-            href: '/shared-planners',
-        },
-    ];
+    useEffect(() => {
+        const update = async () => {
+            updateOrderOfRecipesInVisiblePlanner(visibleWeek, recipesToSkipUpdate[0]);
+        };
 
-    const [activeTab, setActiveTab] = useState(0);
-    const onChange = (active: number) => {
-        setActiveTab(active);
-    };
+        update();
+
+        console.log('Visible week', visibleWeek)
+    }, [visibleWeek]);
 
     const [weekUpdated, setWeekUpdated] = useState(0);
 
-    const onDragEnd = (result, columns, setColumns) => {
+    const onDragEnd = (result: DragResult, columns: DragColumn, setColumns: Function) => {
         if (!result.destination) return;
         const { source, destination } = result;
 
@@ -351,7 +246,6 @@ export default function Planner(props: PlannerProps) {
 
     useEffect(() => {
         if (weekUpdated !== 0) {
-            console.log('Visible week changing', visibleWeek);
             const update = async () => {
                 await updateOrderOfRecipesInVisiblePlanner(visibleWeek);
                 // await getPlanners();
@@ -362,14 +256,61 @@ export default function Planner(props: PlannerProps) {
         // Update order of recipes in visible week
     }, [weekUpdated]);
 
+    // Remove a recipe from a planner
+    const removeFromPlanner = async (recipesToRemove: Recipe[]) => {
+        const promises: any = [];
+
+        // Remove from visibleWeek
+
+        setPlanner(prevState => prevState.filter((recipe: Recipe) => !recipesToRemove.includes(recipe.plannerData.id)));
+
+        // Remove from firestore
+        for (const recipeId of recipesToRemove) {
+            const promise = removeRecipeFromPlanner(recipeId);
+            promises.push(promise);
+        }
+
+        await Promise.all(promises);
+
+        setWeekUpdated(weekUpdated + 1);
+
+        // reorderRecipeInPlanner(recipeToRemove, 0, recipeToRemove.plannerData.date, true);
+    };
+
+    const openClearWeekModal = () => {
+        modals.openConfirmModal({
+            title: 'Delete your profile',
+            centered: true,
+            children: (
+                <Text size="sm">
+                    Are you sure you want to clear the week of recipes?
+                </Text>
+            ),
+            labels: { confirm: 'Clear week', cancel: 'Cancel' },
+            confirmProps: { color: 'red' },
+            onConfirm: async () => {
+                const recipeIdsToDelete = recipesInWeek.map((recipe => recipe.plannerData.id));
+                await clearVisibleWeekOfPlanner(recipeIdsToDelete);
+                await getPlanners();
+                console.log('Recipes to delete', recipeIdsToDelete);
+            },
+        });
+    };
+
     return (
         <Stack>
-            <Tabs active={activeTab} onTabChange={onChange}>
-                {tabs.map((tab, index) => (
-                    <Tabs.Tab key={index} label={tab.label} icon={tab.icon} />))}
-            </Tabs>
 
             <ChevronButtons onChange={changeWeek} text={`${formatDate(weekStart, 1)} - ${formatDate(weekEnd, 1)}`} />
+            <div>Can edit: {JSON.stringify(userCanEdit)}</div>
+            {recipesInWeek.length > 0 ? (
+                <Group>
+                    <AddToListButton recipes={recipesInWeek}>
+                        <Button leftIcon={<Notes size={14} />}>Add week to list</Button>
+                    </AddToListButton>
+                    {userCanEdit ? <Button leftIcon={<Trash size={14} />} onClick={() => openClearWeekModal()} color="red">Clear week</Button> : null}
+                </Group>
+
+            ) : null}
 
             <Grid gutter={16}>
                 <DragDropContext
@@ -377,15 +318,14 @@ export default function Planner(props: PlannerProps) {
                 >
                     {/* {visibleWeek.map((day, index) => ( */}
                     {Object.entries(visibleWeek).map(([columnId, day], index) => (
-                        <Grid.Col xs={12} sm={6} md={4} lg={3}>
-                            <Stack key={index}>
+                        <Grid.Col key={columnId} xs={12} sm={6} md={4} lg={3}>
+                            <Stack>
 
                                 <PlannerDay
                                     recipes={day.recipes}
                                     removeFromPlanner={removeFromPlanner}
                                     date={day.date}
                                     changeDateOfRecipeInPlanner={changeDateOfRecipeInPlanner}
-                                    reorderRecipeInPlanner={reorderRecipeInPlanner}
                                     adjustServings={adjustServings}
                                     servingsChanged={servingsChanged}
                                     collaborativePlannerId={collaborativePlannerId}
@@ -393,6 +333,8 @@ export default function Planner(props: PlannerProps) {
                                     visibleWeek={visibleWeek}
                                     columnId={day.id}
                                     getPlanners={getPlanners}
+                                    userCanEdit={userCanEdit}
+
                                 />
 
                             </Stack>
